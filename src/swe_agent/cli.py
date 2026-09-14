@@ -7,7 +7,7 @@ from pathlib import Path
 
 from swe_agent.agent import Agent
 from swe_agent.gemini_model import GeminiModel
-from swe_agent.models import ToolCall
+from swe_agent.models import AgentState, ToolCall
 from swe_agent.trace import write_trace
 
 
@@ -23,12 +23,17 @@ def main() -> None:
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO if args.verbose else logging.WARNING, format="%(message)s")
 
-    state = Agent(
-        GeminiModel(args.model),
-        args.repository,
-        max_steps=args.max_steps,
-        allow_dirty=args.allow_dirty,
-    ).run(args.task)
+    try:
+        state = Agent(
+            GeminiModel(args.model),
+            args.repository,
+            max_steps=args.max_steps,
+            allow_dirty=args.allow_dirty,
+        ).run(args.task)
+    except ValueError as exc:
+        state = AgentState(args.repository.resolve(), args.task, args.max_steps)
+        state.status = "setup_error"
+        state.error = f"{type(exc).__name__}: {exc}"
     if args.trace_file:
         write_trace(state, args.trace_file)
     diff = ""

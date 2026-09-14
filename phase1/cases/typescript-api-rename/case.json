@@ -1,0 +1,13 @@
+{
+  "id": "typescript-api-rename",
+  "language": "TypeScript",
+  "task": "Bug: the public formatter function is misspelled as formtName. Rename it to formatName and update every call site. Do not retain the misspelled API. Run the repository tests.",
+  "setup_command": "npm install --ignore-scripts --no-audit --no-fund",
+  "validation_command": "npm test",
+  "expected_changed_files": ["src/formatter.ts", "src/greeting.ts"],
+  "expected_content": {
+    "src/formatter.ts": ["export function formatName"],
+    "src/greeting.ts": ["import { formatName }", "return `Hello, ${formatName(name)}!`"]
+  },
+  "expected_behavior": "The correctly spelled formatName API is exported and used by greet; strict TypeScript validation passes."
+}

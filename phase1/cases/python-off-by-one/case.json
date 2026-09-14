@@ -1,0 +1,11 @@
+{
+  "id": "python-off-by-one",
+  "language": "Python",
+  "task": "Bug: next_value should return the integer immediately after its input, but next_value(4) returns 6. Fix the implementation and validate it.",
+  "validation_command": "python -m unittest discover -v",
+  "expected_changed_files": ["counter.py"],
+  "expected_content": {
+    "counter.py": ["return value + 1"]
+  },
+  "expected_behavior": "next_value(4) returns 5 and the unittest suite passes."
+}
