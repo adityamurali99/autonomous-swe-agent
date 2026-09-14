@@ -25,7 +25,7 @@ policies around the loop without changing tools.
 src/swe_agent/
   agent.py       # state machine and completion invariants
   models.py      # actions, observations, state, and model protocol
-  openai_model.py# production model adapter
+  gemini_model.py# production model adapter
   tools.py       # generic repository tools and registry
   discovery.py   # build/test command inference
   cli.py         # composition root
@@ -42,7 +42,7 @@ tests/           # deterministic unit and vertical-slice tests
   reports errors as data so the model can recover.
 - `discovery.py`: recognizes `package.json`, `pyproject.toml`, `Makefile`, CMake, Maven, and Gradle,
   and supplies plausible commands with the file that justified each one.
-- `openai_model.py`: contains prompting and provider translation only.
+- `gemini_model.py`: contains prompting, local API-key loading, rate-limit recovery, and provider translation only.
 - `cli.py`: wires dependencies, emits structured JSON logs, and renders the final result.
 
 ## Agent state

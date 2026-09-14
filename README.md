@@ -13,9 +13,12 @@ features. See [ARCHITECTURE.md](ARCHITECTURE.md) for the design and milestone de
 python -m venv .venv
 . .venv/bin/activate
 pip install -e '.[dev]'
-export OPENAI_API_KEY=...
+export GEMINI_API_KEY=...
 autonomous-swe-agent /path/to/git/repository "Fix the off-by-one error in pagination"
 ```
+
+For local development, the CLI also reads `GEMINI_API_KEY` from an ignored `.env` file in the
+current working directory. The default model is `gemini-3.8-flash`.
 
 The agent operates directly on the supplied working tree. Use a disposable branch or worktree.
 Commands execute locally with the same permissions as the CLI process.

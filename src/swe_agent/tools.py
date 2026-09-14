@@ -43,6 +43,7 @@ class RepositoryTools:
         self.root = root.resolve()
         if not self.root.is_dir():
             raise ValueError(f"Repository does not exist: {root}")
+        self._edited_untracked: set[str] = set()
         self._tools = {tool.name: tool for tool in self._build_tools()}
 
     @property
@@ -137,6 +138,7 @@ class RepositoryTools:
                 return Observation(False, "Cannot replace text in a file that does not exist")
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(new)
+            self._edited_untracked.add(str(path.relative_to(self.root)))
             return Observation(
                 True,
                 f"Created {path.relative_to(self.root)}",
@@ -149,6 +151,15 @@ class RepositoryTools:
         if actual != expected:
             return Observation(False, f"Expected {expected} replacements but found {actual}; file unchanged")
         path.write_text(content.replace(old, new))
+        relative = str(path.relative_to(self.root))
+        tracked = subprocess.run(
+            ["git", "ls-files", "--error-unmatch", "--", relative],
+            cwd=self.root,
+            capture_output=True,
+            check=False,
+        )
+        if tracked.returncode != 0:
+            self._edited_untracked.add(relative)
         return Observation(
             True,
             f"Replaced {actual} occurrence(s) in {path.relative_to(self.root)}",
@@ -197,17 +208,8 @@ class RepositoryTools:
         tracked = self._process("git diff --no-ext-diff --", 60)
         if not tracked.success:
             return tracked
-        untracked = subprocess.run(
-            ["git", "ls-files", "--others", "--exclude-standard"],
-            cwd=self.root,
-            text=True,
-            capture_output=True,
-            check=False,
-        )
-        if untracked.returncode != 0:
-            return Observation(False, untracked.stderr, {"command": "git ls-files"})
         patches = [tracked.output]
-        untracked_files = [line for line in untracked.stdout.splitlines() if line]
+        untracked_files = sorted(self._edited_untracked)
         for relative in untracked_files:
             path = self._path(relative)
             try:
