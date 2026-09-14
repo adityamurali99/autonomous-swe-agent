@@ -5,6 +5,7 @@ import subprocess
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
+from difflib import unified_diff
 from pathlib import Path
 
 from swe_agent.discovery import discover_test_commands
@@ -75,7 +76,7 @@ class RepositoryTools:
             Tool("search_code", "Search repository text using a literal query.", obj | {"properties": {
                 "query": {"type": "string"}, "path": {"type": "string", "default": "."},
                 "glob": {"type": "string"}}, "required": ["query"]}, self._search_code),
-            Tool("edit_file", "Replace exact text in a repository file.", obj | {"properties": {
+            Tool("edit_file", "Replace exact text, or create a file when old_text is empty.", obj | {"properties": {
                 "path": {"type": "string"}, "old_text": {"type": "string"},
                 "new_text": {"type": "string"},
                 "expected_replacements": {"type": "integer", "default": 1}},
@@ -131,7 +132,19 @@ class RepositoryTools:
         old = str(args["old_text"])
         new = str(args["new_text"])
         expected = int(args.get("expected_replacements", 1))
+        if not path.exists():
+            if old:
+                return Observation(False, "Cannot replace text in a file that does not exist")
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(new)
+            return Observation(
+                True,
+                f"Created {path.relative_to(self.root)}",
+                {"path": str(path.relative_to(self.root)), "created": True},
+            )
         content = path.read_text()
+        if not old:
+            return Observation(False, "old_text must be non-empty when editing an existing file")
         actual = content.count(old)
         if actual != expected:
             return Observation(False, f"Expected {expected} replacements but found {actual}; file unchanged")
@@ -181,4 +194,29 @@ class RepositoryTools:
 
     def _inspect_diff(self, args: JsonObject) -> Observation:
         del args
-        return self._process("git diff --no-ext-diff --", 60)
+        tracked = self._process("git diff --no-ext-diff --", 60)
+        if not tracked.success:
+            return tracked
+        untracked = subprocess.run(
+            ["git", "ls-files", "--others", "--exclude-standard"],
+            cwd=self.root,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        if untracked.returncode != 0:
+            return Observation(False, untracked.stderr, {"command": "git ls-files"})
+        patches = [tracked.output]
+        untracked_files = [line for line in untracked.stdout.splitlines() if line]
+        for relative in untracked_files:
+            path = self._path(relative)
+            try:
+                lines = path.read_text().splitlines(keepends=True)
+            except UnicodeDecodeError:
+                patches.append(f"Binary untracked file: {relative}\n")
+                continue
+            patches.append("".join(unified_diff([], lines, fromfile="/dev/null", tofile=f"b/{relative}")))
+        output, truncated = _bounded("".join(patches))
+        metadata = dict(tracked.metadata)
+        metadata["untracked_files"] = untracked_files
+        return Observation(True, output, metadata, truncated)
