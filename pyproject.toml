@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "autonomous-swe-agent"
+version = "0.1.0"
+description = "A small, language-agnostic autonomous software engineering agent"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["openai>=1.50"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.6", "mypy>=1.11"]
+
+[project.scripts]
+autonomous-swe-agent = "swe_agent.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/swe_agent"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+
+[[tool.mypy.overrides]]
+module = "openai"
+ignore_missing_imports = true
