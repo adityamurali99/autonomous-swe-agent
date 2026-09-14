@@ -1,0 +1,31 @@
+{
+  "case_id": "python-off-by-one",
+  "model": "gemini-3.1-flash-lite",
+  "expected_behavior": "next_value(4) returns 5 and the unittest suite passes.",
+  "passed": true,
+  "checks": {
+    "agent_completed": true,
+    "agent_validation_succeeded": true,
+    "independent_validation_passed": true,
+    "changed_files_match": true,
+    "expected_content_present": true
+  },
+  "expected_changed_files": [
+    "counter.py"
+  ],
+  "actual_changed_files": [
+    "counter.py"
+  ],
+  "content_checks": {
+    "counter.py": true
+  },
+  "patch_comparison": {
+    "normalized_reference_matches": true
+  },
+  "validation": {
+    "command": "python -m unittest discover -v",
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "test_next_value (test_counter.CounterTest.test_next_value) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n"
+  }
+}

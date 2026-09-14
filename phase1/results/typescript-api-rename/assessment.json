@@ -1,0 +1,34 @@
+{
+  "case_id": "typescript-api-rename",
+  "model": "gemini-3.1-flash-lite",
+  "expected_behavior": "The correctly spelled formatName API is exported and used by greet; strict TypeScript validation passes.",
+  "passed": true,
+  "checks": {
+    "agent_completed": true,
+    "agent_validation_succeeded": true,
+    "independent_validation_passed": true,
+    "changed_files_match": true,
+    "expected_content_present": true
+  },
+  "expected_changed_files": [
+    "src/formatter.ts",
+    "src/greeting.ts"
+  ],
+  "actual_changed_files": [
+    "src/formatter.ts",
+    "src/greeting.ts"
+  ],
+  "content_checks": {
+    "src/formatter.ts": true,
+    "src/greeting.ts": true
+  },
+  "patch_comparison": {
+    "normalized_reference_matches": true
+  },
+  "validation": {
+    "command": "npm test",
+    "exit_code": 0,
+    "stdout": "\n> test\n> tsc --noEmit\n\n",
+    "stderr": ""
+  }
+}
