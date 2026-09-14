@@ -15,7 +15,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Run an autonomous coding agent on a local repository")
     parser.add_argument("repository", type=Path)
     parser.add_argument("task")
-    parser.add_argument("--model", default="gemini-3.8-flash")
+    parser.add_argument("--model", default="gemini-3.1-flash-lite")
     parser.add_argument("--max-steps", type=int, default=40)
     parser.add_argument("--trace-file", type=Path)
     parser.add_argument("--allow-dirty", action="store_true")

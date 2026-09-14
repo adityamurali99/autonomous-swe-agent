@@ -44,4 +44,4 @@ From the project root, with `GEMINI_API_KEY` exported or present in the ignored 
 ```
 
 Free-tier Gemini runs may pause at rate limits. Bounded retry behavior is expected and is not a
-case failure.
+case failure. Each assessment records the exact model used; the default is `gemini-3.1-flash-lite`.

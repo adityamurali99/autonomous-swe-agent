@@ -18,7 +18,8 @@ autonomous-swe-agent /path/to/git/repository "Fix the off-by-one error in pagina
 ```
 
 For local development, the CLI also reads `GEMINI_API_KEY` from an ignored `.env` file in the
-current working directory. The default model is `gemini-3.8-flash`.
+current working directory. The default model is `gemini-3.1-flash-lite`, selected for its free-tier
+throughput and agentic tool-use focus.
 
 The agent operates directly on the supplied working tree. Use a disposable branch or worktree.
 Commands execute locally with the same permissions as the CLI process.

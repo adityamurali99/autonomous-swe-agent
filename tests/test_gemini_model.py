@@ -39,7 +39,7 @@ def test_gemini_adapter_translates_function_call_and_schema(tmp_path: Path):
 
     assert action == ToolCall("read_file", {"path": "README.md"})
     assert all("strict" not in tool for tool in interactions.request["tools"])
-    assert interactions.request["model"] == "gemini-3.8-flash"
+    assert interactions.request["model"] == "gemini-3.1-flash-lite"
 
 
 def test_load_local_api_key(tmp_path: Path):
@@ -57,3 +57,22 @@ def test_gemini_adapter_retries_rate_limit(tmp_path: Path):
 
     assert action == ToolCall("read_file", {"path": "README.md"})
     assert interactions.failures == 0
+
+
+def test_gemini_adapter_retries_connection_error(tmp_path: Path):
+    class APIConnectionError(RuntimeError):
+        pass
+
+    class RecoveringInteractions(FakeInteractions):
+        def create(self, **kwargs: Any) -> SimpleNamespace:
+            if self.failures:
+                self.failures -= 1
+                raise APIConnectionError("temporary DNS failure")
+            return super().create(**kwargs)
+
+    interactions = RecoveringInteractions(failures=1)
+    model = GeminiModel(client=SimpleNamespace(interactions=interactions))
+
+    action = model.next_action(AgentState(tmp_path, "Inspect the readme"), [])
+
+    assert action == ToolCall("read_file", {"path": "README.md"})

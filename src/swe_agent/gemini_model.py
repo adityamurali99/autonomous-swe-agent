@@ -33,13 +33,16 @@ def load_local_api_key(path: Path = Path(".env")) -> str | None:
 class GeminiModel:
     def __init__(
         self,
-        model: str = "gemini-3.8-flash",
+        model: str = "gemini-3.1-flash-lite",
         *,
         api_key: str | None = None,
         client: Any | None = None,
         max_rate_limit_retries: int = 3,
     ) -> None:
-        self.client = client or genai.Client(api_key=api_key or load_local_api_key())
+        self.client = client or genai.Client(
+            api_key=api_key or load_local_api_key(),
+            http_options={"retry_options": {"attempts": 1}},
+        )
         self.model = model
         self.max_rate_limit_retries = max_rate_limit_retries
 
@@ -82,9 +85,11 @@ class GeminiModel:
             try:
                 return cast(Any, self.client.interactions.create(**request))
             except Exception as exc:
-                if getattr(exc, "status_code", None) != 429 or attempt == self.max_rate_limit_retries:
+                rate_limited = getattr(exc, "status_code", None) == 429
+                connection_failed = type(exc).__name__ in {"APIConnectionError", "APITimeoutError"}
+                if not (rate_limited or connection_failed) or attempt == self.max_rate_limit_retries:
                     raise
-                match = re.search(r"retry in ([0-9.]+)s", str(exc), re.IGNORECASE)
+                match = re.search(r"retry in ([0-9.]+)s", str(exc), re.IGNORECASE) if rate_limited else None
                 delay = float(match.group(1)) if match else min(2 ** attempt, 30)
                 time.sleep(delay + 0.25)
         raise RuntimeError("unreachable")

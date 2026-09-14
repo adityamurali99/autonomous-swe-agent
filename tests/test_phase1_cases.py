@@ -25,7 +25,7 @@ def test_phase1_case_contract_and_reference_patch(case_directory: Path, tmp_path
     )
 
     applied = subprocess.run(
-        ["git", "apply", str(case_directory / "expected.patch")],
+        ["git", "apply", "--unidiff-zero", str(case_directory / "expected.patch")],
         cwd=repository,
         text=True,
         capture_output=True,

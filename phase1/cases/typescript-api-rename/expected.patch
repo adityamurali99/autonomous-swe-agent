@@ -1,19 +1,15 @@
 diff --git a/src/formatter.ts b/src/formatter.ts
 --- a/src/formatter.ts
 +++ b/src/formatter.ts
-@@ -1,3 +1,3 @@
+@@ -1,1 +1,1 @@
 -export function formtName(name: string): string {
 +export function formatName(name: string): string {
-   return name.trim();
- }
 diff --git a/src/greeting.ts b/src/greeting.ts
 --- a/src/greeting.ts
 +++ b/src/greeting.ts
-@@ -1,5 +1,5 @@
+@@ -1,1 +1,1 @@
 -import { formtName } from "./formatter";
 +import { formatName } from "./formatter";
-
- export function greet(name: string): string {
+@@ -4,1 +4,1 @@
 -  return `Hello, ${formtName(name)}!`;
 +  return `Hello, ${formatName(name)}!`;
- }

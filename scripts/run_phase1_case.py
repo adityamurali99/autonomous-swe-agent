@@ -31,10 +31,25 @@ def final_patch(state: Any) -> str:
     return ""
 
 
+def normalized_patch(patch: str) -> str:
+    meaningful_lines = [
+        line
+        for line in patch.splitlines()
+        if line.startswith("diff --git ")
+        or (line.startswith(("+", "-")) and not line.startswith(("+++", "---")))
+    ]
+    return "\n".join(meaningful_lines)
+
+
+def sanitized_json(value: Any, repository: Path) -> str:
+    rendered = json.dumps(value, indent=2, ensure_ascii=False)
+    return rendered.replace(str(repository), "<temporary-repository>") + "\n"
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run one documented Phase 1 Gemini case")
     parser.add_argument("case_directory", type=Path)
-    parser.add_argument("--model", default="gemini-3.8-flash")
+    parser.add_argument("--model", default="gemini-3.1-flash-lite")
     parser.add_argument("--max-steps", type=int, default=30)
     parser.add_argument("--output-root", type=Path, default=Path("phase1/results"))
     args = parser.parse_args()
@@ -90,14 +105,19 @@ def main() -> None:
             "changed_files_match": actual_files == sorted(case["expected_changed_files"]),
             "expected_content_present": all(content_checks.values()),
         }
+        reference_patch = (case_directory / "expected.patch").read_text()
         assessment = {
             "case_id": case["id"],
+            "model": args.model,
             "expected_behavior": case["expected_behavior"],
             "passed": all(checks.values()),
             "checks": checks,
             "expected_changed_files": case["expected_changed_files"],
             "actual_changed_files": actual_files,
             "content_checks": content_checks,
+            "patch_comparison": {
+                "normalized_reference_matches": normalized_patch(reference_patch) == normalized_patch(patch)
+            },
             "validation": {
                 "command": case["validation_command"],
                 "exit_code": validation.returncode,
@@ -107,9 +127,10 @@ def main() -> None:
         }
         trace = state_to_trace(state)
         trace["repository"] = "<temporary-repository>"
-        (output / "trace.json").write_text(json.dumps(trace, indent=2) + "\n")
+        trace["model"] = args.model
+        (output / "trace.json").write_text(sanitized_json(trace, repository))
         (output / "actual.patch").write_text(patch)
-        (output / "assessment.json").write_text(json.dumps(assessment, indent=2) + "\n")
+        (output / "assessment.json").write_text(sanitized_json(assessment, repository))
         print(json.dumps(assessment, indent=2))
         if not assessment["passed"]:
             raise SystemExit(1)
