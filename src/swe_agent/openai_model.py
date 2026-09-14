@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, cast
 
 from openai import OpenAI
+from openai.types.responses import FunctionToolParam, ResponseFunctionToolCall
 
 from swe_agent.models import AgentState, Finish, JsonObject, ToolCall
 
@@ -27,16 +28,17 @@ class OpenAIModel:
             "description": "Finish after successful tests and final diff inspection.",
             "parameters": {"type": "object", "properties": {"summary": {"type": "string"}},
                            "required": ["summary"], "additionalProperties": False},
+            "strict": False,
         }
         response = self.client.responses.create(
             model=self.model,
             instructions=SYSTEM_PROMPT,
             input=self._context(state),
-            tools=[*tool_schemas, finish_schema],
+            tools=cast(list[FunctionToolParam], [*tool_schemas, finish_schema]),
             tool_choice="required",
         )
         for item in response.output:
-            if getattr(item, "type", None) != "function_call":
+            if not isinstance(item, ResponseFunctionToolCall):
                 continue
             name = str(item.name)
             arguments: dict[str, Any] = json.loads(item.arguments)

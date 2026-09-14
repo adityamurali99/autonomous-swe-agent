@@ -3,9 +3,9 @@ from __future__ import annotations
 import os
 import subprocess
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable
 
 from swe_agent.discovery import discover_test_commands
 from swe_agent.models import JsonObject, Observation
@@ -33,6 +33,7 @@ class Tool:
             "name": self.name,
             "description": self.description,
             "parameters": self.parameters,
+            "strict": False,
         }
 
 
@@ -167,7 +168,11 @@ class RepositoryTools:
         command = args.get("command")
         if command is None:
             if not candidates:
-                return Observation(False, "No test command discovered; inspect repository documentation and provide command explicitly", {"candidates": []})
+                return Observation(
+                    False,
+                    "No test command discovered; inspect repository documentation and provide command explicitly",
+                    {"candidates": []},
+                )
             command = candidates[0].command
         result = self._process(str(command), int(args.get("timeout_seconds", 300)))
         metadata = dict(result.metadata)
