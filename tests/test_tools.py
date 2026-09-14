@@ -3,7 +3,14 @@ from pathlib import Path
 from swe_agent.tools import RepositoryTools
 
 
+def init_repository(path: Path) -> None:
+    import subprocess
+
+    subprocess.run(["git", "init", "-q"], cwd=path, check=True)
+
+
 def test_rejects_paths_outside_repository(tmp_path: Path):
+    init_repository(tmp_path)
     tools = RepositoryTools(tmp_path)
     result = tools.execute("read_file", {"path": "../secret.txt"})
     assert not result.success
@@ -11,6 +18,7 @@ def test_rejects_paths_outside_repository(tmp_path: Path):
 
 
 def test_exact_edit_refuses_ambiguous_replacement(tmp_path: Path):
+    init_repository(tmp_path)
     (tmp_path / "value.txt").write_text("x x")
     tools = RepositoryTools(tmp_path)
     result = tools.execute("edit_file", {"path": "value.txt", "old_text": "x", "new_text": "y"})
@@ -19,9 +27,7 @@ def test_exact_edit_refuses_ambiguous_replacement(tmp_path: Path):
 
 
 def test_create_file_is_included_in_diff(tmp_path: Path):
-    import subprocess
-
-    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    init_repository(tmp_path)
     tools = RepositoryTools(tmp_path)
 
     edit = tools.execute(

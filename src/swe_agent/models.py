@@ -46,6 +46,7 @@ class AgentState:
     diff_inspected: bool = False
     status: str = "running"
     summary: str | None = None
+    error: str | None = None
 
 
 class Model(Protocol):

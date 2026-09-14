@@ -40,9 +40,18 @@ class Tool:
 
 class RepositoryTools:
     def __init__(self, root: Path) -> None:
-        self.root = root.resolve()
-        if not self.root.is_dir():
+        requested_root = root.resolve()
+        if not requested_root.is_dir():
             raise ValueError(f"Repository does not exist: {root}")
+        git_root = subprocess.run(
+            ["git", "-C", str(requested_root), "rev-parse", "--show-toplevel"],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        if git_root.returncode != 0:
+            raise ValueError(f"Not a Git repository: {root}")
+        self.root = Path(git_root.stdout.strip()).resolve()
         self._edited_untracked: set[str] = set()
         self._tools = {tool.name: tool for tool in self._build_tools()}
 
