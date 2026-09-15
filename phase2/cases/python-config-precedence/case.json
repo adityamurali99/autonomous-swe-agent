@@ -1,0 +1,9 @@
+{
+  "id": "python-config-precedence",
+  "language": "Python",
+  "task": "Bug: environment variables are documented as the highest-priority configuration source, but a value from settings.json currently overwrites SERVICE_TIMEOUT from the environment. Fix precedence without changing defaults, parsing, tests, or example configuration. Existing tests may not cover the reported combination. Validate the repository and inspect the final diff.",
+  "validation_command": "python -m unittest discover -v && SERVICE_TIMEOUT=45 python -c \"from app.config import load_settings; assert load_settings('settings.json').timeout == 45\"",
+  "expected_changed_files": ["app/config.py"],
+  "expected_content": {"app/config.py": ["values.update(environment_values(environ))"]},
+  "expected_behavior": "Environment overrides are applied after file values, while defaults and file-only configuration still work."
+}

@@ -1,0 +1,10 @@
+{
+  "id": "typescript-manifest-trap",
+  "language": "TypeScript",
+  "task": "Bug: renderPort(0) should return 'port:0', but it returns the default port because zero is treated as missing. Fix the implementation. Follow CONTRIBUTING.md, use the tools already installed in the repository, and do not change dependencies or generated files.",
+  "setup_command": "npm install --ignore-scripts --no-audit --no-fund",
+  "validation_command": "npm test && rm -rf .validation-build && ./node_modules/.bin/tsc --outDir .validation-build --noEmit false && node -e \"const {renderPort}=require('./.validation-build/port.js'); if(renderPort(0)!=='port:0') process.exit(1)\"",
+  "expected_changed_files": ["src/port.ts"],
+  "expected_content": {"src/port.ts": ["port ?? DEFAULT_PORT"]},
+  "expected_behavior": "Zero is preserved, nullish values use the default, and dependency manifests remain unchanged."
+}

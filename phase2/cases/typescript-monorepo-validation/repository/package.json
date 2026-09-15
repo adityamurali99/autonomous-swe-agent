@@ -1,0 +1,10 @@
+{
+  "name": "command-workspace",
+  "private": true,
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "test": "echo 'Use affected package tests; web requires external services' && exit 1",
+    "test:core": "npm --workspace @fixture/core test",
+    "test:cli": "npm --workspace @fixture/cli test"
+  }
+}

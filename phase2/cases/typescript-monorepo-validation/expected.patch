@@ -1,0 +1,12 @@
+diff --git a/packages/cli/src/args.js b/packages/cli/src/args.js
+--- a/packages/cli/src/args.js
++++ b/packages/cli/src/args.js
+@@ -5 +5 @@ export function parseArgs(args) {
+-  return { dryRun: normalized.some((option) => option === "dry-run") };
++  return { dryRun: normalized.some((option) => option === "dryRun") };
+diff --git a/packages/core/src/options.js b/packages/core/src/options.js
+--- a/packages/core/src/options.js
++++ b/packages/core/src/options.js
+@@ -2 +2 @@ export function normalizeOption(raw) {
+-  return raw.replace(/^--/, "").replaceAll("-", "_");
++  return raw.replace(/^--/, "").replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());

@@ -1,0 +1,6 @@
+{
+  "name": "@fixture/cli",
+  "private": true,
+  "dependencies": {"@fixture/core": "*"},
+  "scripts": {"test": "node --test test/*.test.js"}
+}

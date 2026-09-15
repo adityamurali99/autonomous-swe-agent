@@ -1,0 +1,6 @@
+diff --git a/src/port.ts b/src/port.ts
+--- a/src/port.ts
++++ b/src/port.ts
+@@ -4 +4 @@ export function renderPort(port: number | null | undefined): string {
+-  return `port:${port || DEFAULT_PORT}`;
++  return `port:${port ?? DEFAULT_PORT}`;

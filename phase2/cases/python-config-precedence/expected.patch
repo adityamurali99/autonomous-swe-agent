@@ -1,0 +1,8 @@
+diff --git a/app/config.py b/app/config.py
+--- a/app/config.py
++++ b/app/config.py
+@@ -18,2 +18,3 @@ def load_settings(path: str | Path, environ: Mapping[str, str] | None = None) -> Settings:
+-    values = {**DEFAULTS, **environment_values(environ)}
++    values = dict(DEFAULTS)
+     values.update(file_values(path))
++    values.update(environment_values(environ))

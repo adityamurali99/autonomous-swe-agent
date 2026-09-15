@@ -1,0 +1,33 @@
+diff --git a/src/cli.cjs b/src/cli.cjs
+--- a/src/cli.cjs
++++ b/src/cli.cjs
+@@ -1 +1 @@
+-const { normalizeUser } = require("../dist/index.js");
++const { normalizeUsername } = require("../dist/index.js");
+@@ -4 +4 @@ if (require.main === module) {
+-  process.stdout.write(normalizeUser(process.argv[2] || ""));
++  process.stdout.write(normalizeUsername(process.argv[2] || ""));
+@@ -7 +7 @@ if (require.main === module) {
+-module.exports = { run: (name) => normalizeUser(name) };
++module.exports = { run: (name) => normalizeUsername(name) };
+diff --git a/src/index.ts b/src/index.ts
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -1 +1 @@
+-export { normalizeUser, normalizeUserId } from "./normalizer";
++export { normalizeUsername, normalizeUserId } from "./normalizer";
+diff --git a/src/normalizer.ts b/src/normalizer.ts
+--- a/src/normalizer.ts
++++ b/src/normalizer.ts
+@@ -1 +1 @@
+-export function normalizeUser(value: string): string {
++export function normalizeUsername(value: string): string {
+diff --git a/src/service.ts b/src/service.ts
+--- a/src/service.ts
++++ b/src/service.ts
+@@ -1 +1 @@
+-import { normalizeUser } from "./index";
++import { normalizeUsername } from "./index";
+@@ -4 +4 @@ export function createUser(rawName: string): { username: string } {
+-  return { username: normalizeUser(rawName) };
++  return { username: normalizeUsername(rawName) };

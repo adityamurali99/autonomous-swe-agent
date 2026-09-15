@@ -6,10 +6,15 @@ from pathlib import Path
 
 import pytest
 
-CASES = Path(__file__).parents[1] / "phase1" / "cases"
+ROOT = Path(__file__).parents[1]
+CASES = [
+    case
+    for cases_root in (ROOT / "phase1" / "cases", ROOT / "phase2" / "cases")
+    for case in cases_root.iterdir()
+]
 
 
-@pytest.mark.parametrize("case_directory", sorted(CASES.iterdir()), ids=lambda path: path.name)
+@pytest.mark.parametrize("case_directory", sorted(CASES), ids=lambda path: path.name)
 def test_phase1_case_contract_and_reference_patch(case_directory: Path, tmp_path: Path):
     case = json.loads((case_directory / "case.json").read_text())
     repository = tmp_path / "repository"

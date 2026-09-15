@@ -1,0 +1,13 @@
+{
+  "id": "typescript-monorepo-validation",
+  "language": "TypeScript",
+  "task": "Bug: the CLI does not recognize --dry-run. The shared option normalizer is documented to return camelCase, but it currently returns snake_case, and the CLI checks a kebab-case value. Fix both packages. Follow the workspace validation instructions and do not change the unrelated web package or workspace configuration.",
+  "setup_command": "npm install --ignore-scripts --no-audit --no-fund",
+  "validation_command": "npm run test:core && npm run test:cli",
+  "expected_changed_files": ["packages/cli/src/args.js", "packages/core/src/options.js"],
+  "expected_content": {
+    "packages/core/src/options.js": ["toUpperCase()"],
+    "packages/cli/src/args.js": ["option === \"dryRun\""]
+  },
+  "expected_behavior": "Core normalizes multi-word flags to camelCase and CLI recognizes dryRun using targeted workspace tests."
+}

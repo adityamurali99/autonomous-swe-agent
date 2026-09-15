@@ -1,0 +1,15 @@
+{
+  "id": "typescript-barrel-migration",
+  "language": "TypeScript",
+  "task": "Rename the public normalizeUser function to normalizeUsername. Update the barrel export and every production consumer, including JavaScript consumers outside tsconfig. Do not rename the separate normalizeUserId function. Run the repository validation.",
+  "setup_command": "npm install --ignore-scripts --no-audit --no-fund",
+  "validation_command": "npm test",
+  "expected_changed_files": ["src/cli.cjs", "src/index.ts", "src/normalizer.ts", "src/service.ts"],
+  "expected_content": {
+    "src/normalizer.ts": ["function normalizeUsername"],
+    "src/index.ts": ["normalizeUsername"],
+    "src/service.ts": ["normalizeUsername(rawName)"],
+    "src/cli.cjs": ["normalizeUsername(process.argv[2]"]
+  },
+  "expected_behavior": "The renamed public API works through the barrel and all TS/JS consumers, while normalizeUserId remains unchanged."
+}
