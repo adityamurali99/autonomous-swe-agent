@@ -63,6 +63,13 @@ whole spawned process group on timeout; a later isolated executor can replace it
 the agent or tools. Documented evaluation suites resume by default from complete per-case artifacts.
 Use `python scripts/run_phase1_suite.py --redo-existing` to intentionally rerun every case.
 
+## Real-world Python evaluation
+
+The repository includes a reproducible mirror of all 300 SWE-bench Lite tasks, strict separation
+between agent-visible issues and evaluator-only gold data, and fixed 10- and 50-task subsets. See
+[`evals/swebench_lite/README.md`](evals/swebench_lite/README.md) for the complete generation,
+inspection, official grading, and comparison workflow.
+
 ## Validate this project
 
 ```bash

@@ -1,0 +1,98 @@
+{
+  "diagnostic_50": {
+    "diagnostic_tags": {
+      "broad_regression": 26,
+      "focused_regression": 24,
+      "large_patch": 8,
+      "long_issue": 13,
+      "medium_issue": 19,
+      "medium_patch": 17,
+      "multiple_failing_tests": 24,
+      "short_issue": 18,
+      "single_file": 50,
+      "small_patch": 25,
+      "weak_failure_signal": 26
+    },
+    "repositories": {
+      "astropy/astropy": 4,
+      "django/django": 5,
+      "matplotlib/matplotlib": 5,
+      "mwaskom/seaborn": 4,
+      "pallets/flask": 3,
+      "psf/requests": 4,
+      "pydata/xarray": 4,
+      "pylint-dev/pylint": 4,
+      "pytest-dev/pytest": 4,
+      "scikit-learn/scikit-learn": 4,
+      "sphinx-doc/sphinx": 4,
+      "sympy/sympy": 5
+    },
+    "repository_count": 12,
+    "task_count": 50
+  },
+  "full_mirror": {
+    "diagnostic_tags": {
+      "broad_regression": 210,
+      "focused_regression": 90,
+      "large_patch": 8,
+      "long_issue": 20,
+      "medium_issue": 140,
+      "medium_patch": 72,
+      "multiple_failing_tests": 107,
+      "short_issue": 140,
+      "single_file": 300,
+      "small_patch": 220,
+      "weak_failure_signal": 193
+    },
+    "repositories": {
+      "astropy/astropy": 6,
+      "django/django": 114,
+      "matplotlib/matplotlib": 23,
+      "mwaskom/seaborn": 4,
+      "pallets/flask": 3,
+      "psf/requests": 6,
+      "pydata/xarray": 5,
+      "pylint-dev/pylint": 6,
+      "pytest-dev/pytest": 17,
+      "scikit-learn/scikit-learn": 23,
+      "sphinx-doc/sphinx": 16,
+      "sympy/sympy": 77
+    },
+    "repository_count": 12,
+    "task_count": 300
+  },
+  "limitations": [
+    "All SWE-bench Lite gold patches modify one production file.",
+    "Structural tags describe gold patch and test shape, not semantic bug categories."
+  ],
+  "schema_version": 1,
+  "smoke_10": {
+    "diagnostic_tags": {
+      "broad_regression": 6,
+      "focused_regression": 4,
+      "large_patch": 3,
+      "long_issue": 3,
+      "medium_issue": 4,
+      "medium_patch": 3,
+      "multiple_failing_tests": 5,
+      "short_issue": 3,
+      "single_file": 10,
+      "small_patch": 4,
+      "weak_failure_signal": 5
+    },
+    "repositories": {
+      "astropy/astropy": 1,
+      "django/django": 1,
+      "matplotlib/matplotlib": 1,
+      "mwaskom/seaborn": 1,
+      "pydata/xarray": 1,
+      "pylint-dev/pylint": 1,
+      "pytest-dev/pytest": 1,
+      "scikit-learn/scikit-learn": 1,
+      "sphinx-doc/sphinx": 1,
+      "sympy/sympy": 1
+    },
+    "repository_count": 10,
+    "task_count": 10
+  }
+}

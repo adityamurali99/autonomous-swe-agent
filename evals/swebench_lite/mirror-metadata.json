@@ -1,0 +1,14 @@
+{
+  "agent_fields": [
+    "instance_id",
+    "repo",
+    "base_commit",
+    "problem_statement",
+    "version"
+  ],
+  "dataset": "SWE-bench/SWE-bench_Lite",
+  "evaluator_tasks_sha256": "f02d5867dca767886806c55e4e17560d1711bd3d9d4ac51214756cda395801af",
+  "schema_version": 1,
+  "split": "test",
+  "task_count": 300
+}
