@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from swe_agent.execution import CommandResult
 from swe_agent.tools import RepositoryTools
 
 
@@ -136,3 +137,25 @@ def test_run_command_requires_reason_for_dependency_override(tmp_path: Path):
     assert not result.success
     assert "reason is required" in result.output
     assert not (tmp_path / "package-lock.json").exists()
+
+
+def test_repository_commands_use_injected_executor(tmp_path: Path):
+    init_repository(tmp_path)
+
+    class FakeExecutor:
+        def __init__(self) -> None:
+            self.call: tuple[str, Path, int] | None = None
+
+        def run(self, command: str, cwd: Path, timeout_seconds: int) -> CommandResult:
+            self.call = (command, cwd, timeout_seconds)
+            return CommandResult(0, "controlled output\n", 0.25)
+
+    executor = FakeExecutor()
+    tools = RepositoryTools(tmp_path, executor=executor)
+
+    result = tools.execute("run_command", {"command": "custom build", "timeout_seconds": 17})
+
+    assert result.success
+    assert result.output == "controlled output\n"
+    assert result.metadata["duration_seconds"] == 0.25
+    assert executor.call == ("custom build", tmp_path.resolve(), 17)

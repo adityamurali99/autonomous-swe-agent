@@ -20,7 +20,8 @@ class FakeInteractions:
             error.status_code = 429  # type: ignore[attr-defined]
             raise error
         step = SimpleNamespace(type="function_call", name="read_file", arguments={"path": "README.md"})
-        return SimpleNamespace(steps=[step])
+        usage = SimpleNamespace(total_input_tokens=100, total_output_tokens=25, total_tokens=130)
+        return SimpleNamespace(steps=[step], usage=usage)
 
 
 class FakeGeneration:
@@ -62,6 +63,10 @@ def test_gemini_adapter_translates_function_call_and_schema(tmp_path: Path):
     assert action == ToolCall("read_file", {"path": "README.md"})
     assert all("strict" not in tool for tool in interactions.request["tools"])
     assert interactions.request["model"] == "gemini-3.1-flash-lite"
+    assert model.usage.requests == 1
+    assert model.usage.input_tokens == 100
+    assert model.usage.output_tokens == 25
+    assert model.usage.total_tokens == 130
 
 
 def test_gemini_adapter_traces_exact_model_context_and_output(tmp_path: Path):
@@ -114,3 +119,16 @@ def test_gemini_adapter_retries_connection_error(tmp_path: Path):
     action = model.next_action(AgentState(tmp_path, "Inspect the readme"), [])
 
     assert action == ToolCall("read_file", {"path": "README.md"})
+
+
+def test_gemini_adapter_estimates_cost_from_configured_rates(tmp_path: Path):
+    interactions = FakeInteractions()
+    model = GeminiModel(
+        client=SimpleNamespace(interactions=interactions),
+        input_cost_per_million=1.0,
+        output_cost_per_million=2.0,
+    )
+
+    model.next_action(AgentState(tmp_path, "Inspect the readme"), [])
+
+    assert model.usage.estimated_cost_usd == 0.00015

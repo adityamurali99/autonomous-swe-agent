@@ -99,4 +99,6 @@ def test_agent_produces_validated_patch_after_recovering_from_failure(tmp_path: 
         "diff_inspected": True,
         "final_patch": state.final_patch,
         "final_validation_succeeded": True,
+        "runtime_seconds": state.runtime_seconds,
+        "usage": state.usage.__dict__,
     }

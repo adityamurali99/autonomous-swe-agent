@@ -7,7 +7,7 @@ from pathlib import Path
 
 from swe_agent.agent import Agent
 from swe_agent.gemini_model import GeminiModel
-from swe_agent.models import AgentState
+from swe_agent.models import AgentState, ResourceLimits
 from swe_agent.observability import create_tracer
 from swe_agent.trace import write_trace
 
@@ -18,6 +18,11 @@ def main() -> None:
     parser.add_argument("task")
     parser.add_argument("--model", default="gemini-3.1-flash-lite")
     parser.add_argument("--max-steps", type=int, default=40)
+    parser.add_argument("--max-runtime-seconds", type=float)
+    parser.add_argument("--max-total-tokens", type=int)
+    parser.add_argument("--max-cost-usd", type=float)
+    parser.add_argument("--input-cost-per-million", type=float, default=0.0)
+    parser.add_argument("--output-cost-per-million", type=float, default=0.0)
     parser.add_argument("--trace-file", type=Path)
     parser.add_argument("--allow-dirty", action="store_true")
     parser.add_argument("--verbose", action="store_true")
@@ -27,10 +32,20 @@ def main() -> None:
     tracer = create_tracer()
     try:
         state = Agent(
-            GeminiModel(args.model, tracer=tracer),
+            GeminiModel(
+                args.model,
+                tracer=tracer,
+                input_cost_per_million=args.input_cost_per_million,
+                output_cost_per_million=args.output_cost_per_million,
+            ),
             args.repository,
             max_steps=args.max_steps,
             allow_dirty=args.allow_dirty,
+            limits=ResourceLimits(
+                max_runtime_seconds=args.max_runtime_seconds,
+                max_total_tokens=args.max_total_tokens,
+                max_cost_usd=args.max_cost_usd,
+            ),
             tracer=tracer,
         ).run(args.task)
     except ValueError as exc:
@@ -45,6 +60,8 @@ def main() -> None:
                       "error": state.error,
                       "validation_succeeded": state.validation_succeeded,
                       "diff_inspected": state.diff_inspected, "diff": state.final_patch or "",
+                      "runtime_seconds": state.runtime_seconds,
+                      "usage": state.usage.__dict__,
                       "langfuse_tracing": tracer.enabled}, indent=2))
     if state.status != "completed":
         raise SystemExit(1)

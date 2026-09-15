@@ -8,7 +8,7 @@ from typing import Any, cast
 
 from google import genai
 
-from swe_agent.models import AgentState, Finish, JsonObject, ToolCall
+from swe_agent.models import AgentState, Finish, JsonObject, ModelUsage, ToolCall
 from swe_agent.observability import NullTracer, Tracer, load_local_env
 
 SYSTEM_PROMPT = """You are an autonomous software engineering agent operating on a local repository.
@@ -17,7 +17,10 @@ commands instead of assuming a language. Treat tool errors and test failures as 
 cause, and rerun tests after every edit. Inspect the final Git diff. Call finish only when the task
 is complete, tests pass, and the diff contains only intended changes. Keep the finish summary
 concise and mention validation. Do not change dependency manifests or lockfiles unless the task
-requires it; when it does, explicitly allow the command and explain why."""
+requires it; when it does, explicitly allow the command and explain why. If the existing test suite
+passes before a fix, reproduce the reported behavior with a focused command or test and use that
+result to guide the change. A green existing suite alone does not prove the bug is fixed. Remove any
+temporary reproduction files before final validation."""
 
 
 def load_local_api_key(path: Path = Path(".env")) -> str | None:
@@ -33,6 +36,8 @@ class GeminiModel:
         api_key: str | None = None,
         client: Any | None = None,
         max_rate_limit_retries: int = 3,
+        input_cost_per_million: float = 0.0,
+        output_cost_per_million: float = 0.0,
         tracer: Tracer | None = None,
     ) -> None:
         self.client = client or genai.Client(
@@ -41,6 +46,9 @@ class GeminiModel:
         )
         self.model = model
         self.max_rate_limit_retries = max_rate_limit_retries
+        self.input_cost_per_million = input_cost_per_million
+        self.output_cost_per_million = output_cost_per_million
+        self.usage = ModelUsage()
         self.tracer = tracer or NullTracer()
 
     def next_action(self, state: AgentState, tool_schemas: list[JsonObject]) -> ToolCall | Finish:
@@ -61,6 +69,7 @@ class GeminiModel:
         with self.tracer.generation(
             name="gemini-next-action", model=self.model, input=trace_input
         ) as generation:
+            usage_before = self.usage
             interaction = self._create_interaction(
                 model=self.model,
                 input=context,
@@ -71,13 +80,21 @@ class GeminiModel:
                     }
                 },
             )
+            self._record_usage(getattr(interaction, "usage", None))
             for raw_step in interaction.steps or []:
                 step = cast(Any, raw_step)
                 if step.type != "function_call":
                     continue
                 name = str(step.name)
                 arguments = cast(JsonObject, step.arguments)
-                generation.update(output={"tool": name, "arguments": arguments})
+                generation.update(
+                    output={"tool": name, "arguments": arguments},
+                    usage_details={
+                        "input": self.usage.input_tokens - usage_before.input_tokens,
+                        "output": self.usage.output_tokens - usage_before.output_tokens,
+                        "total": self.usage.total_tokens - usage_before.total_tokens,
+                    },
+                )
                 if name == "finish":
                     return Finish(str(arguments["summary"]))
                 return ToolCall(name, arguments)
@@ -86,6 +103,13 @@ class GeminiModel:
     def _create_interaction(self, **request: Any) -> Any:
         for attempt in range(self.max_rate_limit_retries + 1):
             try:
+                self.usage = ModelUsage(
+                    requests=self.usage.requests + 1,
+                    input_tokens=self.usage.input_tokens,
+                    output_tokens=self.usage.output_tokens,
+                    total_tokens=self.usage.total_tokens,
+                    estimated_cost_usd=self.usage.estimated_cost_usd,
+                )
                 return cast(Any, self.client.interactions.create(**request))
             except Exception as exc:
                 rate_limited = getattr(exc, "status_code", None) == 429
@@ -96,6 +120,32 @@ class GeminiModel:
                 delay = float(match.group(1)) if match else min(2 ** attempt, 30)
                 time.sleep(delay + 0.25)
         raise RuntimeError("unreachable")
+
+    def _record_usage(self, provider_usage: Any) -> None:
+        if provider_usage is None:
+            return
+        input_tokens = int(self._usage_value(provider_usage, "total_input_tokens") or 0)
+        output_tokens = int(self._usage_value(provider_usage, "total_output_tokens") or 0)
+        total_tokens = int(
+            self._usage_value(provider_usage, "total_tokens") or input_tokens + output_tokens
+        )
+        incremental_cost = (
+            input_tokens * self.input_cost_per_million
+            + output_tokens * self.output_cost_per_million
+        ) / 1_000_000
+        self.usage = ModelUsage(
+            requests=self.usage.requests,
+            input_tokens=self.usage.input_tokens + input_tokens,
+            output_tokens=self.usage.output_tokens + output_tokens,
+            total_tokens=self.usage.total_tokens + total_tokens,
+            estimated_cost_usd=self.usage.estimated_cost_usd + incremental_cost,
+        )
+
+    @staticmethod
+    def _usage_value(provider_usage: Any, name: str) -> Any:
+        if isinstance(provider_usage, dict):
+            return provider_usage.get(name)
+        return getattr(provider_usage, name, None)
 
     @staticmethod
     def _gemini_schema(schema: JsonObject) -> JsonObject:

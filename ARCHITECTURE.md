@@ -8,12 +8,14 @@ The smallest useful design has five boundaries:
 2. **Agent loop** owns state, asks a model for exactly one next action, executes it, and records
    the observation. It knows nothing about repository languages.
 3. **Model adapter** converts state plus tool schemas into a model request and converts the
-   response into either a tool call or a finish request. The OpenAI adapter can be replaced in
+   response into either a tool call or a finish request. The Gemini adapter can be replaced in
    tests or future routing experiments.
 4. **Tool registry** exposes typed, schema-described repository capabilities and dispatches calls.
    All filesystem operations are constrained to the repository root.
 5. **Command discovery** examines conventional manifests and documentation and returns ranked
    validation candidates with evidence. It does not silently execute them.
+6. **Command executor** runs repository commands behind a small protocol. The initial local
+   implementation can later be replaced by a container executor without changing agent behavior.
 
 This is intentionally a loop, not a planner/executor graph. Planning, context compression,
 model routing, retries, and evaluation can later be introduced behind the model adapter or as
@@ -27,7 +29,10 @@ src/swe_agent/
   models.py      # actions, observations, state, and model protocol
   gemini_model.py# production model adapter
   tools.py       # generic repository tools and registry
+  execution.py   # replaceable command execution boundary
   discovery.py   # build/test command inference
+  evaluation.py  # resumable evaluation artifact checks
+  trace.py       # durable, versioned run traces
   cli.py         # composition root
 tests/           # deterministic unit and vertical-slice tests
 ```
@@ -40,6 +45,8 @@ tests/           # deterministic unit and vertical-slice tests
   test execution plus diff inspection before accepting completion.
 - `tools.py`: validates arguments, performs bounded I/O/process work, truncates observations, and
   reports errors as data so the model can recover.
+- `execution.py`: provides the command protocol and local subprocess implementation, including
+  process-group cleanup on timeout.
 - `discovery.py`: recognizes `package.json`, `pyproject.toml`, `Makefile`, CMake, Maven, and Gradle,
   and supplies plausible commands with the file that justified each one.
 - `gemini_model.py`: contains prompting, local API-key loading, rate-limit recovery, and provider translation only.
@@ -49,9 +56,9 @@ tests/           # deterministic unit and vertical-slice tests
 
 `AgentState` contains the immutable task and repository path plus an ordered event history,
 current step, maximum steps, validation state, whether a diff was inspected, the system-owned
-final validation result and patch, and terminal status/summary. The history is the initial context
-strategy: retain all bounded observations. A later context selector can project this state into a
-smaller model view.
+final validation result and patch, model request/token/cost usage, wall-clock runtime, and terminal
+status/summary. The history is the initial context strategy: retain all bounded observations. A
+later context selector can project this state into a smaller model view.
 
 An event is an `Action` paired with its `Observation`. Actions are either a named tool call with
 JSON arguments or a finish request. Observations contain success, textual output, structured
@@ -88,7 +95,8 @@ and `inspect_diff`; otherwise the loop returns a corrective observation. The sys
 exact successful validation command, rejects completion if validation fails or changes the
 working-tree patch, and captures a fresh authoritative diff against `HEAD`. This final diff includes
 staged, unstaged, and untracked files and does not depend on an earlier model observation. The loop
-stops on accepted completion or a configured step limit.
+stops on accepted completion, a configured step limit, or a runtime/token/cost budget. Provider
+usage and the final runtime are serialized into the versioned trace and surfaced by the CLI.
 
 This completion gate proves that review happened and that the returned patch is the same state that
 passed final validation; it does not prove that the implementation satisfies the task. Richer

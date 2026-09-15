@@ -52,6 +52,17 @@ Commands also protect dependency manifests and lockfiles from incidental mutatio
 explicitly requires dependency changes, the model must opt in through `run_command` and record its
 reason; otherwise those file changes are restored and the command returns a failed observation.
 
+Each run reports wall-clock runtime, model request count, token usage, and estimated cost in both
+the CLI result and JSON trace. Cost rates default to zero for the free-tier setup; pass
+`--input-cost-per-million` and `--output-cost-per-million` when using paid pricing. Optional
+`--max-runtime-seconds`, `--max-total-tokens`, and `--max-cost-usd` limits stop a run before its next
+model decision once a budget is reached.
+
+Repository commands run through a small execution interface. The default local executor kills the
+whole spawned process group on timeout; a later isolated executor can replace it without changing
+the agent or tools. Documented evaluation suites resume by default from complete per-case artifacts.
+Use `python scripts/run_phase1_suite.py --redo-existing` to intentionally rerun every case.
+
 ## Validate this project
 
 ```bash

@@ -35,6 +35,22 @@ class Event:
     observation: Observation
 
 
+@dataclass(frozen=True)
+class ModelUsage:
+    requests: int = 0
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+    estimated_cost_usd: float = 0.0
+
+
+@dataclass(frozen=True)
+class ResourceLimits:
+    max_runtime_seconds: float | None = None
+    max_total_tokens: int | None = None
+    max_cost_usd: float | None = None
+
+
 @dataclass
 class AgentState:
     repository: Path
@@ -49,6 +65,8 @@ class AgentState:
     error: str | None = None
     final_patch: str | None = None
     final_validation: Observation | None = None
+    usage: ModelUsage = field(default_factory=ModelUsage)
+    runtime_seconds: float = 0.0
 
 
 class Model(Protocol):

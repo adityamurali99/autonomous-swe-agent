@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import subprocess
-import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from difflib import unified_diff
@@ -10,6 +9,7 @@ from fnmatch import fnmatch
 from pathlib import Path
 
 from swe_agent.discovery import discover_test_commands
+from swe_agent.execution import CommandExecutor, LocalCommandExecutor
 from swe_agent.models import JsonObject, Observation
 
 MAX_OUTPUT = 30_000
@@ -45,7 +45,7 @@ class Tool:
 
 
 class RepositoryTools:
-    def __init__(self, root: Path) -> None:
+    def __init__(self, root: Path, *, executor: CommandExecutor | None = None) -> None:
         requested_root = root.resolve()
         if not requested_root.is_dir():
             raise ValueError(f"Repository does not exist: {root}")
@@ -58,6 +58,7 @@ class RepositoryTools:
         if git_root.returncode != 0:
             raise ValueError(f"Not a Git repository: {root}")
         self.root = Path(git_root.stdout.strip()).resolve()
+        self.executor = executor or LocalCommandExecutor()
         self._tools = {tool.name: tool for tool in self._build_tools()}
 
     @property
@@ -176,20 +177,21 @@ class RepositoryTools:
     def _process(self, command: str, timeout: int) -> Observation:
         if timeout < 1 or timeout > 1800:
             raise ValueError("timeout_seconds must be between 1 and 1800")
-        started = time.monotonic()
-        try:
-            completed = subprocess.run(command, cwd=self.root, shell=True, text=True,
-                                       capture_output=True, timeout=timeout, check=False)
-            combined = completed.stdout + completed.stderr
-            output, truncated = _bounded(combined)
-            return Observation(completed.returncode == 0, output, {
-                "command": command, "exit_code": completed.returncode,
-                "duration_seconds": round(time.monotonic() - started, 3)}, truncated)
-        except subprocess.TimeoutExpired as exc:
-            stdout = exc.stdout.decode(errors="replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
-            stderr = exc.stderr.decode(errors="replace") if isinstance(exc.stderr, bytes) else (exc.stderr or "")
-            partial = stdout + stderr
-            return Observation(False, str(partial), {"command": command, "timed_out": True})
+        completed = self.executor.run(command, self.root, timeout)
+        output, truncated = _bounded(completed.output)
+        metadata: JsonObject = {
+            "command": command,
+            "exit_code": completed.returncode,
+            "duration_seconds": completed.duration_seconds,
+        }
+        if completed.timed_out:
+            metadata["timed_out"] = True
+        return Observation(
+            completed.returncode == 0 and not completed.timed_out,
+            output,
+            metadata,
+            truncated,
+        )
 
     def _run_command(self, args: JsonObject) -> Observation:
         allow_changes = bool(args.get("allow_dependency_changes", False))

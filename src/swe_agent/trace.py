@@ -5,7 +5,7 @@ from pathlib import Path
 
 from swe_agent.models import AgentState, JsonObject, ToolCall
 
-TRACE_SCHEMA_VERSION = 2
+TRACE_SCHEMA_VERSION = 3
 
 
 def state_to_trace(state: AgentState) -> JsonObject:
@@ -42,6 +42,8 @@ def state_to_trace(state: AgentState) -> JsonObject:
         "summary": state.summary,
         "error": state.error,
         "final_patch": state.final_patch,
+        "runtime_seconds": state.runtime_seconds,
+        "usage": state.usage.__dict__,
         "final_validation": None if state.final_validation is None else {
             "success": state.final_validation.success,
             "output": state.final_validation.output,

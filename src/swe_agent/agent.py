@@ -2,9 +2,20 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from pathlib import Path
 
-from swe_agent.models import AgentState, Event, Finish, Model, Observation, ToolCall
+from swe_agent.execution import CommandExecutor
+from swe_agent.models import (
+    AgentState,
+    Event,
+    Finish,
+    Model,
+    ModelUsage,
+    Observation,
+    ResourceLimits,
+    ToolCall,
+)
 from swe_agent.observability import NullTracer, Tracer
 from swe_agent.tools import RepositoryTools
 
@@ -20,13 +31,16 @@ class Agent:
         max_steps: int = 40,
         max_repeated_actions: int = 3,
         allow_dirty: bool = False,
+        limits: ResourceLimits | None = None,
+        executor: CommandExecutor | None = None,
         tracer: Tracer | None = None,
     ) -> None:
         self.model = model
-        self.tools = RepositoryTools(repository)
+        self.tools = RepositoryTools(repository, executor=executor)
         self.max_steps = max_steps
         self.max_repeated_actions = max_repeated_actions
         self.tracer = tracer or NullTracer()
+        self.limits = limits or ResourceLimits()
         if not allow_dirty:
             dirty = self.tools.execute("run_command", {"command": "git status --porcelain"})
             if not dirty.success:
@@ -52,20 +66,30 @@ class Agent:
                     "final_validation_succeeded": (
                         None if state.final_validation is None else state.final_validation.success
                     ),
+                    "runtime_seconds": state.runtime_seconds,
+                    "usage": state.usage.__dict__,
                 }
             )
             return state
 
     def _run(self, task: str) -> AgentState:
         state = AgentState(self.tools.root, task, self.max_steps)
+        started = time.monotonic()
         while state.step < state.max_steps and state.status == "running":
+            state.runtime_seconds = round(time.monotonic() - started, 3)
+            if limit_error := self._limit_error(state):
+                state.status = "resource_limit"
+                state.error = limit_error
+                break
             try:
                 action = self.model.next_action(state, self.tools.schemas)
             except Exception as exc:  # noqa: BLE001 - provider failures become inspectable state
+                self._sync_usage(state)
                 state.status = "model_error"
                 state.error = f"{type(exc).__name__}: {exc}"
                 logger.error(json.dumps({"event": "model_error", "error": state.error}))
                 break
+            self._sync_usage(state)
             state.step += 1
             if isinstance(action, ToolCall) and self._is_repeated(state, action):
                 observation = Observation(False, "Stopped after repeated identical actions without progress")
@@ -110,7 +134,32 @@ class Agent:
 
         if state.status == "running":
             state.status = "step_limit"
+        state.runtime_seconds = round(time.monotonic() - started, 3)
         return state
+
+    def _sync_usage(self, state: AgentState) -> None:
+        usage = getattr(self.model, "usage", None)
+        if isinstance(usage, ModelUsage):
+            state.usage = usage
+        else:
+            state.usage = ModelUsage(
+                requests=state.usage.requests + 1,
+                input_tokens=state.usage.input_tokens,
+                output_tokens=state.usage.output_tokens,
+                total_tokens=state.usage.total_tokens,
+                estimated_cost_usd=state.usage.estimated_cost_usd,
+            )
+
+    def _limit_error(self, state: AgentState) -> str | None:
+        checks = (
+            (self.limits.max_runtime_seconds, state.runtime_seconds, "runtime seconds"),
+            (self.limits.max_total_tokens, state.usage.total_tokens, "total tokens"),
+            (self.limits.max_cost_usd, state.usage.estimated_cost_usd, "estimated cost USD"),
+        )
+        for maximum, current, label in checks:
+            if maximum is not None and current >= maximum:
+                return f"Resource limit reached: {label} {current} >= {maximum}"
+        return None
 
     def _finalize(self, state: AgentState) -> Observation | None:
         validation_event = next(

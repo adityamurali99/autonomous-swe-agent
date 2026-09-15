@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from swe_agent.agent import Agent
-from swe_agent.models import AgentState, Finish, JsonObject, ToolCall
+from swe_agent.models import AgentState, Finish, JsonObject, ModelUsage, ResourceLimits, ToolCall
 from swe_agent.trace import state_to_trace, write_trace
 
 
@@ -65,6 +65,16 @@ class MutatingValidationModel:
         return actions[state.step]
 
 
+class TokenLimitedModel:
+    def __init__(self) -> None:
+        self.usage = ModelUsage()
+
+    def next_action(self, state: AgentState, tool_schemas: list[JsonObject]) -> ToolCall:
+        del state, tool_schemas
+        self.usage = ModelUsage(requests=1, input_tokens=80, output_tokens=20, total_tokens=100)
+        return ToolCall("read_file", {"path": "README.md"})
+
+
 def test_rejects_non_git_repository(tmp_path: Path):
     with pytest.raises(ValueError, match="Not a Git repository"):
         Agent(RepeatingModel(), tmp_path)
@@ -100,7 +110,9 @@ def test_premature_finish_reaches_step_limit_and_trace_is_written(tmp_path: Path
 
     assert state.status == "step_limit"
     assert len(state.events) == 2
-    assert trace["schema_version"] == 2
+    assert trace["schema_version"] == 3
+    assert trace["usage"]["requests"] == 2
+    assert trace["runtime_seconds"] >= 0
     assert trace["events"][0]["observation"]["success"] is False
     assert '"status": "step_limit"' in trace_path.read_text()
 
@@ -128,3 +140,18 @@ def test_completion_is_rejected_when_final_validation_mutates_repository(tmp_pat
     assert state.final_validation is not None and state.final_validation.success
     assert not state.validation_succeeded
     assert "final validation modified the working tree" in state.events[-1].observation.output.lower()
+
+
+def test_stops_before_next_decision_when_token_limit_is_reached(tmp_path: Path):
+    init_clean_repository(tmp_path)
+
+    state = Agent(
+        TokenLimitedModel(),
+        tmp_path,
+        limits=ResourceLimits(max_total_tokens=100),
+    ).run("Respect the token budget")
+
+    assert state.status == "resource_limit"
+    assert state.step == 1
+    assert state.usage.total_tokens == 100
+    assert state.error == "Resource limit reached: total tokens 100 >= 100"
