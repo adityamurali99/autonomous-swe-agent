@@ -1,0 +1,29 @@
+diff --git a/app/config.py b/app/config.py
+index 4cf0484..8fa7600 100644
+--- a/app/config.py
++++ b/app/config.py
+@@ -19,4 +19,6 @@ def load_settings(path: str | Path, environ: Mapping[str, str] | None = None) ->
+     environ = os.environ if environ is None else environ
+     values = {**DEFAULTS, **environment_values(environ)}
+     values.update(file_values(path))
++    # Environment should override file if provided
++    values.update(environment_values(environ))
+     return Settings(host=str(values["host"]), port=int(values["port"]), timeout=int(values["timeout"]))
+--- /dev/null
++++ b/reproduce_issue.py
+@@ -0,0 +1,15 @@
++import unittest
++from app.config import load_settings
++import os
++
++class TestPrecedence(unittest.TestCase):
++    def test_environment_overrides_file(self) -> None:
++        # SERVICE_TIMEOUT should override file setting
++        # file has timeout: 20
++        # set environment SERVICE_TIMEOUT to 30
++        environ = {"SERVICE_TIMEOUT": "30"}
++        settings = load_settings("settings.json", environ)
++        self.assertEqual(settings.timeout, 30)
++
++if __name__ == "__main__":
++    unittest.main()

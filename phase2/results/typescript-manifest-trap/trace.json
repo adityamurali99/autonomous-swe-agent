@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "repository": "<temporary-repository>",
+  "task": "Bug: renderPort(0) should return 'port:0', but it returns the default port because zero is treated as missing. Fix the implementation. Follow CONTRIBUTING.md, use the tools already installed in the repository, and do not change dependencies or generated files.",
+  "status": "model_error",
+  "steps": 0,
+  "validation_succeeded": false,
+  "diff_inspected": false,
+  "summary": null,
+  "error": "RateLimitError: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 500, model: gemini-3.1-flash-lite\\nPlease retry in 58.729233395s.', 'code': 'too_many_requests'}}",
+  "events": [],
+  "model": "gemini-3.1-flash-lite"
+}

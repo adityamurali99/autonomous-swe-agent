@@ -1,0 +1,31 @@
+{
+  "case_id": "python-config-precedence",
+  "model": "gemini-3.1-flash-lite",
+  "expected_behavior": "Environment overrides are applied after file values, while defaults and file-only configuration still work.",
+  "passed": true,
+  "checks": {
+    "agent_completed": true,
+    "agent_validation_succeeded": true,
+    "independent_validation_passed": true,
+    "changed_files_match": true,
+    "expected_content_present": true
+  },
+  "expected_changed_files": [
+    "app/config.py"
+  ],
+  "actual_changed_files": [
+    "app/config.py"
+  ],
+  "content_checks": {
+    "app/config.py": true
+  },
+  "patch_comparison": {
+    "normalized_reference_matches": false
+  },
+  "validation": {
+    "command": "python -m unittest discover -v && SERVICE_TIMEOUT=45 python -c \"from app.config import load_settings; assert load_settings('settings.json').timeout == 45\"",
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "test_file_overrides_defaults (test_config.SettingsTest.test_file_overrides_defaults) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n"
+  }
+}

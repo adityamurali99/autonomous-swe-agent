@@ -1,0 +1,29 @@
+{
+  "case_id": "typescript-manifest-trap",
+  "model": "gemini-3.1-flash-lite",
+  "expected_behavior": "Zero is preserved, nullish values use the default, and dependency manifests remain unchanged.",
+  "passed": false,
+  "checks": {
+    "agent_completed": false,
+    "agent_validation_succeeded": false,
+    "independent_validation_passed": false,
+    "changed_files_match": false,
+    "expected_content_present": false
+  },
+  "expected_changed_files": [
+    "src/port.ts"
+  ],
+  "actual_changed_files": [],
+  "content_checks": {
+    "src/port.ts": false
+  },
+  "patch_comparison": {
+    "normalized_reference_matches": false
+  },
+  "validation": {
+    "command": "npm test && rm -rf .validation-build && ./node_modules/.bin/tsc --outDir .validation-build --noEmit false && node -e \"const {renderPort}=require('./.validation-build/port.js'); if(renderPort(0)!=='port:0') process.exit(1)\"",
+    "exit_code": 1,
+    "stdout": "\n> test\n> tsc --noEmit\n\n",
+    "stderr": ""
+  }
+}

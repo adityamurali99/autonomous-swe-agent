@@ -1,0 +1,40 @@
+{
+  "case_id": "typescript-barrel-migration",
+  "model": "gemini-3.1-flash-lite",
+  "expected_behavior": "The renamed public API works through the barrel and all TS/JS consumers, while normalizeUserId remains unchanged.",
+  "passed": true,
+  "checks": {
+    "agent_completed": true,
+    "agent_validation_succeeded": true,
+    "independent_validation_passed": true,
+    "changed_files_match": true,
+    "expected_content_present": true
+  },
+  "expected_changed_files": [
+    "src/cli.cjs",
+    "src/index.ts",
+    "src/normalizer.ts",
+    "src/service.ts"
+  ],
+  "actual_changed_files": [
+    "src/cli.cjs",
+    "src/index.ts",
+    "src/normalizer.ts",
+    "src/service.ts"
+  ],
+  "content_checks": {
+    "src/normalizer.ts": true,
+    "src/index.ts": true,
+    "src/service.ts": true,
+    "src/cli.cjs": true
+  },
+  "patch_comparison": {
+    "normalized_reference_matches": true
+  },
+  "validation": {
+    "command": "npm test",
+    "exit_code": 0,
+    "stdout": "\n> test\n> npm run build && node --test test/*.test.cjs\n\n\n> build\n> rm -rf dist && tsc\n\n✔ exports the corrected public API (1.628375ms)\n✔ updates TypeScript and JavaScript consumers (0.154917ms)\n✔ preserves the distinct ID normalizer (0.124833ms)\nℹ tests 3\nℹ suites 0\nℹ pass 3\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 167.955375\n",
+    "stderr": ""
+  }
+}

@@ -1,0 +1,377 @@
+{
+  "schema_version": 1,
+  "repository": "<temporary-repository>",
+  "task": "Rename the public normalizeUser function to normalizeUsername. Update the barrel export and every production consumer, including JavaScript consumers outside tsconfig. Do not rename the separate normalizeUserId function. Run the repository validation.",
+  "status": "completed",
+  "steps": 18,
+  "validation_succeeded": true,
+  "diff_inspected": true,
+  "summary": "Renamed `normalizeUser` to `normalizeUsername` in `src/normalizer.ts`, updated the barrel export in `src/index.ts`, and updated the production consumers in `src/service.ts` and `src/cli.cjs`. Validated the changes using `npm test`, which passed successfully. The `normalizeUserId` function remained untouched.",
+  "error": null,
+  "events": [
+    {
+      "step": 1,
+      "action": {
+        "type": "tool_call",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        }
+      },
+      "observation": {
+        "success": true,
+        "output": ".gitignore\nREADME.md\npackage-lock.json\npackage.json\ntsconfig.json\nsrc/cli.cjs\nsrc/index.ts\nsrc/normalizer.ts\nsrc/service.ts\nsrc/type_contract.ts\ntest/api.test.cjs",
+        "metadata": {
+          "count": 11
+        },
+        "truncated": false
+      }
+    },
+    {
+      "step": 2,
+      "action": {
+        "type": "tool_call",
+        "name": "search_code",
+        "arguments": {
+          "query": "normalizeUser"
+        }
+      },
+      "observation": {
+        "success": true,
+        "output": "/private<temporary-repository>/src/service.ts:1:import { normalizeUser } from \"./index\";\n/private<temporary-repository>/src/service.ts:4:  return { username: normalizeUser(rawName) };\n/private<temporary-repository>/src/cli.cjs:1:const { normalizeUser } = require(\"../dist/index.js\");\n/private<temporary-repository>/src/cli.cjs:4:  process.stdout.write(normalizeUser(process.argv[2] || \"\"));\n/private<temporary-repository>/src/cli.cjs:7:module.exports = { run: (name) => normalizeUser(name) };\n/private<temporary-repository>/src/normalizer.ts:1:export function normalizeUser(value: string): string {\n/private<temporary-repository>/src/normalizer.ts:5:export function normalizeUserId(value: string): string {\n/private<temporary-repository>/src/index.ts:1:export { normalizeUser, normalizeUserId } from \"./normalizer\";\n/private<temporary-repository>/test/api.test.cjs:9:  assert.equal(api.normalizeUsername(\" Ada \"), \"ada\");\n/private<temporary-repository>/test/api.test.cjs:10:  assert.equal(api.normalizeUser, undefined);\n/private<temporary-repository>/test/api.test.cjs:19:  assert.equal(api.normalizeUserId(\" user-1 \"), \"USER-1\");\n/private<temporary-repository>/src/type_contract.ts:1:import { normalizeUsername, normalizeUserId } from \"./index\";\n/private<temporary-repository>/src/type_contract.ts:3:const username: string = normalizeUsername(\" Ada \");\n/private<temporary-repository>/src/type_contract.ts:4:const id: string = normalizeUserId(\" user-1 \");\n",
+        "metadata": {
+          "matches": true
+        },
+        "truncated": false
+      }
+    },
+    {
+      "step": 3,
+      "action": {
+        "type": "tool_call",
+        "name": "read_file",
+        "arguments": {
+          "path": "src/normalizer.ts"
+        }
+      },
+      "observation": {
+        "success": true,
+        "output": "     1 | export function normalizeUser(value: string): string {\n     2 |   return value.trim().toLowerCase();\n     3 | }\n     4 | \n     5 | export function normalizeUserId(value: string): string {\n     6 |   return value.trim().toUpperCase();\n     7 | }",
+        "metadata": {
+          "path": "src/normalizer.ts",
+          "lines": [
+            1,
+            7
+          ]
+        },
+        "truncated": false
+      }
+    },
+    {
+      "step": 4,
+      "action": {
+        "type": "tool_call",
+        "name": "edit_file",
+        "arguments": {
+          "old_text": "export function normalizeUser(value: string): string {\n  return value.trim().toLowerCase();\n}\n\nexport function normalizeUserId(value: string): string {",
+          "new_text": "export function normalizeUsername(value: string): string {\n  return value.trim().toLowerCase();\n}\n\nexport function normalizeUserId(value: string): string {",
+          "path": "src/normalizer.ts"
+        }
+      },
+      "observation": {
+        "success": true,
+        "output": "Replaced 1 occurrence(s) in src/normalizer.ts",
+        "metadata": {
+          "path": "src/normalizer.ts"
+        },
+        "truncated": false
+      }
+    },
+    {
+      "step": 5,
+      "action": {
+        "type": "tool_call",
+        "name": "read_file",
+        "arguments": {
+          "path": "src/index.ts"
+        }
+      },
+      "observation": {
+        "success": true,
+        "output": "     1 | export { normalizeUser, normalizeUserId } from \"./normalizer\";",
+        "metadata": {
+          "path": "src/index.ts",
+          "lines": [
+            1,
+            1
+          ]
+        },
+        "truncated": false
+      }
+    },
+    {
+      "step": 6,
+      "action": {
+        "type": "tool_call",
+        "name": "edit_file",
+        "arguments": {
+          "old_text": "export { normalizeUser, normalizeUserId } from \\\"./normalizer\\\";",
+          "new_text": "export { normalizeUsername, normalizeUserId } from \\\"./normalizer\\\";",
+          "path": "src/index.ts"
+        }
+      },
+      "observation": {
+        "success": false,
+        "output": "Expected 1 replacements but found 0; file unchanged",
+        "metadata": {},
+        "truncated": false
+      }
+    },
+    {
+      "step": 7,
+      "action": {
+        "type": "tool_call",
+        "name": "read_file",
+        "arguments": {
+          "path": "src/index.ts"
+        }
+      },
+      "observation": {
+        "success": true,
+        "output": "     1 | export { normalizeUser, normalizeUserId } from \"./normalizer\";",
+        "metadata": {
+          "path": "src/index.ts",
+          "lines": [
+            1,
+            1
+          ]
+        },
+        "truncated": false
+      }
+    },
+    {
+      "step": 8,
+      "action": {
+        "type": "tool_call",
+        "name": "edit_file",
+        "arguments": {
+          "expected_replacements": 1,
+          "path": "src/index.ts",
+          "new_text": "export { normalizeUsername, normalizeUserId } from \"./normalizer\";",
+          "old_text": "export { normalizeUser, normalizeUserId } from \"./normalizer\";"
+        }
+      },
+      "observation": {
+        "success": true,
+        "output": "Replaced 1 occurrence(s) in src/index.ts",
+        "metadata": {
+          "path": "src/index.ts"
+        },
+        "truncated": false
+      }
+    },
+    {
+      "step": 9,
+      "action": {
+        "type": "tool_call",
+        "name": "search_code",
+        "arguments": {
+          "query": "normalizeUser"
+        }
+      },
+      "observation": {
+        "success": true,
+        "output": "/private<temporary-repository>/src/cli.cjs:1:const { normalizeUser } = require(\"../dist/index.js\");\n/private<temporary-repository>/src/cli.cjs:4:  process.stdout.write(normalizeUser(process.argv[2] || \"\"));\n/private<temporary-repository>/src/cli.cjs:7:module.exports = { run: (name) => normalizeUser(name) };\n/private<temporary-repository>/src/service.ts:1:import { normalizeUser } from \"./index\";\n/private<temporary-repository>/src/service.ts:4:  return { username: normalizeUser(rawName) };\n/private<temporary-repository>/src/index.ts:1:export { normalizeUsername, normalizeUserId } from \"./normalizer\";\n/private<temporary-repository>/src/normalizer.ts:1:export function normalizeUsername(value: string): string {\n/private<temporary-repository>/src/normalizer.ts:5:export function normalizeUserId(value: string): string {\n/private<temporary-repository>/test/api.test.cjs:9:  assert.equal(api.normalizeUsername(\" Ada \"), \"ada\");\n/private<temporary-repository>/test/api.test.cjs:10:  assert.equal(api.normalizeUser, undefined);\n/private<temporary-repository>/test/api.test.cjs:19:  assert.equal(api.normalizeUserId(\" user-1 \"), \"USER-1\");\n/private<temporary-repository>/src/type_contract.ts:1:import { normalizeUsername, normalizeUserId } from \"./index\";\n/private<temporary-repository>/src/type_contract.ts:3:const username: string = normalizeUsername(\" Ada \");\n/private<temporary-repository>/src/type_contract.ts:4:const id: string = normalizeUserId(\" user-1 \");\n",
+        "metadata": {
+          "matches": true
+        },
+        "truncated": false
+      }
+    },
+    {
+      "step": 10,
+      "action": {
+        "type": "tool_call",
+        "name": "edit_file",
+        "arguments": {
+          "new_text": "import { normalizeUsername } from \\\"./index\\\";\n...\n  return { username: normalizeUsername(rawName) };",
+          "old_text": "import { normalizeUser } from \\\"./index\\\";\n...\n  return { username: normalizeUser(rawName) };",
+          "path": "src/service.ts",
+          "expected_replacements": 2
+        }
+      },
+      "observation": {
+        "success": false,
+        "output": "Expected 2 replacements but found 0; file unchanged",
+        "metadata": {},
+        "truncated": false
+      }
+    },
+    {
+      "step": 11,
+      "action": {
+        "type": "tool_call",
+        "name": "read_file",
+        "arguments": {
+          "path": "src/service.ts"
+        }
+      },
+      "observation": {
+        "success": true,
+        "output": "     1 | import { normalizeUser } from \"./index\";\n     2 | \n     3 | export function createUser(rawName: string): { username: string } {\n     4 |   return { username: normalizeUser(rawName) };\n     5 | }",
+        "metadata": {
+          "path": "src/service.ts",
+          "lines": [
+            1,
+            5
+          ]
+        },
+        "truncated": false
+      }
+    },
+    {
+      "step": 12,
+      "action": {
+        "type": "tool_call",
+        "name": "edit_file",
+        "arguments": {
+          "new_text": "import { normalizeUsername } from \"./index\";\n\nexport function createUser(rawName: string): { username: string } {\n  return { username: normalizeUsername(rawName) };\n}",
+          "expected_replacements": 1,
+          "path": "src/service.ts",
+          "old_text": "import { normalizeUser } from \"./index\";\n\nexport function createUser(rawName: string): { username: string } {\n  return { username: normalizeUser(rawName) };\n}"
+        }
+      },
+      "observation": {
+        "success": true,
+        "output": "Replaced 1 occurrence(s) in src/service.ts",
+        "metadata": {
+          "path": "src/service.ts"
+        },
+        "truncated": false
+      }
+    },
+    {
+      "step": 13,
+      "action": {
+        "type": "tool_call",
+        "name": "read_file",
+        "arguments": {
+          "path": "src/cli.cjs"
+        }
+      },
+      "observation": {
+        "success": true,
+        "output": "     1 | const { normalizeUser } = require(\"../dist/index.js\");\n     2 | \n     3 | if (require.main === module) {\n     4 |   process.stdout.write(normalizeUser(process.argv[2] || \"\"));\n     5 | }\n     6 | \n     7 | module.exports = { run: (name) => normalizeUser(name) };",
+        "metadata": {
+          "path": "src/cli.cjs",
+          "lines": [
+            1,
+            7
+          ]
+        },
+        "truncated": false
+      }
+    },
+    {
+      "step": 14,
+      "action": {
+        "type": "tool_call",
+        "name": "edit_file",
+        "arguments": {
+          "path": "src/cli.cjs",
+          "new_text": "const { normalizeUsername } = require(\"../dist/index.js\");\n\nif (require.main === module) {\n  process.stdout.write(normalizeUsername(process.argv[2] || \"\"));\n}\n\nmodule.exports = { run: (name) => normalizeUsername(name) };",
+          "expected_replacements": 1,
+          "old_text": "const { normalizeUser } = require(\"../dist/index.js\");\n\nif (require.main === module) {\n  process.stdout.write(normalizeUser(process.argv[2] || \"\"));\n}\n\nmodule.exports = { run: (name) => normalizeUser(name) };"
+        }
+      },
+      "observation": {
+        "success": true,
+        "output": "Replaced 1 occurrence(s) in src/cli.cjs",
+        "metadata": {
+          "path": "src/cli.cjs"
+        },
+        "truncated": false
+      }
+    },
+    {
+      "step": 15,
+      "action": {
+        "type": "tool_call",
+        "name": "run_command",
+        "arguments": {
+          "command": "npm install && npm run build"
+        }
+      },
+      "observation": {
+        "success": true,
+        "output": "\nup to date, audited 2 packages in 490ms\n\nfound 0 vulnerabilities\n\n> build\n> rm -rf dist && tsc\n\n",
+        "metadata": {
+          "command": "npm install && npm run build",
+          "exit_code": 0,
+          "duration_seconds": 2.151
+        },
+        "truncated": false
+      }
+    },
+    {
+      "step": 16,
+      "action": {
+        "type": "tool_call",
+        "name": "run_tests",
+        "arguments": {
+          "command": "npm test"
+        }
+      },
+      "observation": {
+        "success": true,
+        "output": "\n> test\n> npm run build && node --test test/*.test.cjs\n\n\n> build\n> rm -rf dist && tsc\n\n✔ exports the corrected public API (1.345334ms)\n✔ updates TypeScript and JavaScript consumers (0.123208ms)\n✔ preserves the distinct ID normalizer (0.106917ms)\nℹ tests 3\nℹ suites 0\nℹ pass 3\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 159.011167\n",
+        "metadata": {
+          "command": "npm test",
+          "exit_code": 0,
+          "duration_seconds": 1.386,
+          "candidates": [
+            {
+              "priority": 10,
+              "command": "npm test",
+              "evidence": "package.json#scripts.test"
+            }
+          ]
+        },
+        "truncated": false
+      }
+    },
+    {
+      "step": 17,
+      "action": {
+        "type": "tool_call",
+        "name": "inspect_diff",
+        "arguments": {}
+      },
+      "observation": {
+        "success": true,
+        "output": "diff --git a/src/cli.cjs b/src/cli.cjs\nindex 7752f46..629d017 100644\n--- a/src/cli.cjs\n+++ b/src/cli.cjs\n@@ -1,7 +1,7 @@\n-const { normalizeUser } = require(\"../dist/index.js\");\n+const { normalizeUsername } = require(\"../dist/index.js\");\n \n if (require.main === module) {\n-  process.stdout.write(normalizeUser(process.argv[2] || \"\"));\n+  process.stdout.write(normalizeUsername(process.argv[2] || \"\"));\n }\n \n-module.exports = { run: (name) => normalizeUser(name) };\n+module.exports = { run: (name) => normalizeUsername(name) };\ndiff --git a/src/index.ts b/src/index.ts\nindex 80d03ab..d19891e 100644\n--- a/src/index.ts\n+++ b/src/index.ts\n@@ -1 +1 @@\n-export { normalizeUser, normalizeUserId } from \"./normalizer\";\n+export { normalizeUsername, normalizeUserId } from \"./normalizer\";\ndiff --git a/src/normalizer.ts b/src/normalizer.ts\nindex 6e5ea00..6ed3fa6 100644\n--- a/src/normalizer.ts\n+++ b/src/normalizer.ts\n@@ -1,4 +1,4 @@\n-export function normalizeUser(value: string): string {\n+export function normalizeUsername(value: string): string {\n   return value.trim().toLowerCase();\n }\n \ndiff --git a/src/service.ts b/src/service.ts\nindex 4b18493..e5838bf 100644\n--- a/src/service.ts\n+++ b/src/service.ts\n@@ -1,5 +1,5 @@\n-import { normalizeUser } from \"./index\";\n+import { normalizeUsername } from \"./index\";\n \n export function createUser(rawName: string): { username: string } {\n-  return { username: normalizeUser(rawName) };\n+  return { username: normalizeUsername(rawName) };\n }\n",
+        "metadata": {
+          "command": "git diff --no-ext-diff --",
+          "exit_code": 0,
+          "duration_seconds": 0.031,
+          "untracked_files": []
+        },
+        "truncated": false
+      }
+    },
+    {
+      "step": 18,
+      "action": {
+        "type": "finish",
+        "summary": "Renamed `normalizeUser` to `normalizeUsername` in `src/normalizer.ts`, updated the barrel export in `src/index.ts`, and updated the production consumers in `src/service.ts` and `src/cli.cjs`. Validated the changes using `npm test`, which passed successfully. The `normalizeUserId` function remained untouched."
+      },
+      "observation": {
+        "success": true,
+        "output": "Completion accepted",
+        "metadata": {},
+        "truncated": false
+      }
+    }
+  ],
+  "model": "gemini-3.1-flash-lite"
+}
