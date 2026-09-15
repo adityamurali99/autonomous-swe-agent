@@ -112,9 +112,11 @@ class GeminiModel:
                 )
                 return cast(Any, self.client.interactions.create(**request))
             except Exception as exc:
-                rate_limited = getattr(exc, "status_code", None) == 429
+                status_code = getattr(exc, "status_code", None)
+                rate_limited = status_code == 429
+                server_failed = isinstance(status_code, int) and status_code >= 500
                 connection_failed = type(exc).__name__ in {"APIConnectionError", "APITimeoutError"}
-                if not (rate_limited or connection_failed) or attempt == self.max_rate_limit_retries:
+                if not (rate_limited or server_failed or connection_failed) or attempt == self.max_rate_limit_retries:
                     raise
                 match = re.search(r"retry in ([0-9.]+)s", str(exc), re.IGNORECASE) if rate_limited else None
                 delay = float(match.group(1)) if match else min(2 ** attempt, 30)

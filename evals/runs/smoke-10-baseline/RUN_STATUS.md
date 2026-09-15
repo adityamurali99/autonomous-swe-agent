@@ -1,6 +1,6 @@
 # Smoke-10 baseline status
 
-Status: **blocked by provider quota; not an evaluation result**
+Status: **blocked by provider availability; not an evaluation result**
 
 The run started on 2026-09-14 with:
 
@@ -11,16 +11,21 @@ The run started on 2026-09-14 with:
   --max-runtime-seconds 1800
 ```
 
-The first task, `pytest-dev__pytest-7490`, completed one model decision (`list_files`) and then the
-Gemini API returned HTTP 429 because the account-wide free-tier allowance of 500 requests was
-exhausted. The adapter retried four times, so the recorded usage is five provider requests, 6,034
-input tokens, 16 output tokens, and 6,050 total tokens. No patch was produced.
+The first attempt was blocked by the account-wide free-tier allowance of 500 requests. It was
+retried on 2026-09-15 after quota became available. Gemini then intermittently accepted requests but
+returned HTTP 500 because `gemini-3.1-flash-lite` was experiencing high demand.
 
-The second task was interrupted once the same account-level quota response appeared. Remaining
-tasks were not attempted. Repository checkout succeeded, and cached clones remain under the ignored
-`work/swebench/repositories` directory. Temporary worktree metadata was pruned after interruption.
+`pytest-dev__pytest-7490` reached six agent steps before the 500 response. It created focused
+reproduction files and invoked pytest, but it never localized or edited the implementation and
+produced no patch. `sympy__sympy-19254` reached four steps, searched for the relevant polynomial
+functions, and read `sympy/polys/factortools.py`; it also produced no patch before the same provider
+error. These are provider-blocked partial trajectories, not coding outcomes.
+
+The adapter was updated with bounded retries for transient HTTP 5xx responses. A subsequent retry
+still remained blocked inside the provider request for several minutes and was interrupted. The
+remaining eight tasks were not attempted. Repository checkout succeeded, cached clones remain under
+the ignored `work/swebench/repositories` directory, and temporary worktree metadata was pruned.
 
 Do not include this run in solve-rate or behavioral analysis. Resume the same command after quota is
-available; the completed first task will be skipped unless `--redo-existing` is supplied. Because
-its stored result is a provider failure, rerun that task intentionally before treating the directory
-as a real baseline.
+available. Existing provider-failure artifacts will be skipped unless `--redo-existing` is supplied,
+so use that flag before treating this directory as a real baseline.
