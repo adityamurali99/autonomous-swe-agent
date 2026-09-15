@@ -97,4 +97,6 @@ def test_agent_produces_validated_patch_after_recovering_from_failure(tmp_path: 
         "error": None,
         "validation_succeeded": True,
         "diff_inspected": True,
+        "final_patch": state.final_patch,
+        "final_validation_succeeded": True,
     }

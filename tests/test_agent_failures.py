@@ -39,6 +39,32 @@ class PrematureFinishModel:
         return Finish("done")
 
 
+class StaleDiffModel:
+    def next_action(self, state: AgentState, tool_schemas: list[JsonObject]) -> ToolCall | Finish:
+        del tool_schemas
+        actions = [
+            ToolCall("edit_file", {"path": "README.md", "old_text": "fixture\n", "new_text": "fixed\n"}),
+            ToolCall("edit_file", {"path": "temporary.txt", "old_text": "", "new_text": "temporary\n"}),
+            ToolCall("run_tests", {"command": "true"}),
+            ToolCall("inspect_diff", {}),
+            ToolCall("run_command", {"command": "rm temporary.txt"}),
+            ToolCall("run_tests", {"command": "true"}),
+            Finish("fixed and cleaned up"),
+        ]
+        return actions[state.step]
+
+
+class MutatingValidationModel:
+    def next_action(self, state: AgentState, tool_schemas: list[JsonObject]) -> ToolCall | Finish:
+        del tool_schemas
+        actions = [
+            ToolCall("run_tests", {"command": "printf x >> README.md"}),
+            ToolCall("inspect_diff", {}),
+            Finish("validation passed"),
+        ]
+        return actions[state.step]
+
+
 def test_rejects_non_git_repository(tmp_path: Path):
     with pytest.raises(ValueError, match="Not a Git repository"):
         Agent(RepeatingModel(), tmp_path)
@@ -74,6 +100,31 @@ def test_premature_finish_reaches_step_limit_and_trace_is_written(tmp_path: Path
 
     assert state.status == "step_limit"
     assert len(state.events) == 2
-    assert trace["schema_version"] == 1
+    assert trace["schema_version"] == 2
     assert trace["events"][0]["observation"]["success"] is False
     assert '"status": "step_limit"' in trace_path.read_text()
+
+
+def test_final_patch_is_captured_after_temporary_file_cleanup(tmp_path: Path):
+    init_clean_repository(tmp_path)
+
+    state = Agent(StaleDiffModel(), tmp_path).run("Fix README without returning temporary files")
+
+    assert state.status == "completed"
+    assert state.final_validation is not None and state.final_validation.success
+    assert state.final_patch is not None
+    assert "+fixed" in state.final_patch
+    assert "temporary.txt" not in state.final_patch
+    assert "temporary.txt" in state.events[3].observation.output
+
+
+def test_completion_is_rejected_when_final_validation_mutates_repository(tmp_path: Path):
+    init_clean_repository(tmp_path)
+
+    state = Agent(MutatingValidationModel(), tmp_path, max_steps=3).run("Detect mutating validation")
+
+    assert state.status == "step_limit"
+    assert state.final_patch is None
+    assert state.final_validation is not None and state.final_validation.success
+    assert not state.validation_succeeded
+    assert "final validation modified the working tree" in state.events[-1].observation.output.lower()

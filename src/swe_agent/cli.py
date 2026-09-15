@@ -7,7 +7,7 @@ from pathlib import Path
 
 from swe_agent.agent import Agent
 from swe_agent.gemini_model import GeminiModel
-from swe_agent.models import AgentState, ToolCall
+from swe_agent.models import AgentState
 from swe_agent.observability import create_tracer
 from swe_agent.trace import write_trace
 
@@ -41,15 +41,10 @@ def main() -> None:
         tracer.flush()
     if args.trace_file:
         write_trace(state, args.trace_file)
-    diff = ""
-    for event in reversed(state.events):
-        if isinstance(event.action, ToolCall) and event.action.name == "inspect_diff":
-            diff = event.observation.output
-            break
     print(json.dumps({"status": state.status, "steps": state.step, "summary": state.summary,
                       "error": state.error,
                       "validation_succeeded": state.validation_succeeded,
-                      "diff_inspected": state.diff_inspected, "diff": diff,
+                      "diff_inspected": state.diff_inspected, "diff": state.final_patch or "",
                       "langfuse_tracing": tracer.enabled}, indent=2))
     if state.status != "completed":
         raise SystemExit(1)

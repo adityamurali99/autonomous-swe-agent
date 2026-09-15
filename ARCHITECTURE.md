@@ -48,9 +48,10 @@ tests/           # deterministic unit and vertical-slice tests
 ## Agent state
 
 `AgentState` contains the immutable task and repository path plus an ordered event history,
-current step, maximum steps, changed-file hints, last validation result, whether a diff was
-inspected, and terminal status/summary. The history is the initial context strategy: retain all
-bounded observations. A later context selector can project this state into a smaller model view.
+current step, maximum steps, validation state, whether a diff was inspected, the system-owned
+final validation result and patch, and terminal status/summary. The history is the initial context
+strategy: retain all bounded observations. A later context selector can project this state into a
+smaller model view.
 
 An event is an `Action` paired with its `Observation`. Actions are either a named tool call with
 JSON arguments or a finish request. Observations contain success, textual output, structured
@@ -79,13 +80,16 @@ checks; process output and runtime are bounded.
 
 The model receives the task, current state, recent tool observations, and tool schemas. It returns
 one tool call. The registry executes it and appends an event. Tool errors remain in history and the
-model chooses how to recover. A finish request is accepted only after a successful `run_tests` and
-`inspect_diff`; otherwise the loop returns a corrective observation. The loop stops on accepted
-completion or a configured step limit.
+model chooses how to recover. A finish request is considered only after a successful `run_tests`
+and `inspect_diff`; otherwise the loop returns a corrective observation. The system then reruns the
+exact successful validation command, rejects completion if validation fails or changes the
+working-tree patch, and captures a fresh authoritative diff against `HEAD`. This final diff includes
+staged, unstaged, and untracked files and does not depend on an earlier model observation. The loop
+stops on accepted completion or a configured step limit.
 
-This completion gate is deliberately modest: it proves that validation and review happened, not
-that the patch is correct. Richer policies can require targeted and full suites, clean diagnostics,
-or evaluator approval later.
+This completion gate proves that review happened and that the returned patch is the same state that
+passed final validation; it does not prove that the implementation satisfies the task. Richer
+policies can require targeted and full suites, clean diagnostics, or evaluator approval later.
 
 ## Build and test discovery
 

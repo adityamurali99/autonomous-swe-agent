@@ -47,6 +47,8 @@ class AgentState:
     status: str = "running"
     summary: str | None = None
     error: str | None = None
+    final_patch: str | None = None
+    final_validation: Observation | None = None
 
 
 class Model(Protocol):

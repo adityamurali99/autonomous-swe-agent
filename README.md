@@ -44,6 +44,10 @@ repository whose contents must not be sent to your configured Langfuse service.
 The agent operates directly on the supplied working tree. Use a disposable branch or worktree.
 Commands execute locally with the same permissions as the CLI process.
 
+When the model requests completion, the system reruns the last successful test command, rejects
+validation that changes the working tree, and generates the returned patch fresh from the final Git
+state. The final patch includes staged, unstaged, and untracked changes.
+
 ## Validate this project
 
 ```bash

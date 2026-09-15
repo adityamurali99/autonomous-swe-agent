@@ -52,7 +52,6 @@ class RepositoryTools:
         if git_root.returncode != 0:
             raise ValueError(f"Not a Git repository: {root}")
         self.root = Path(git_root.stdout.strip()).resolve()
-        self._edited_untracked: set[str] = set()
         self._tools = {tool.name: tool for tool in self._build_tools()}
 
     @property
@@ -147,7 +146,6 @@ class RepositoryTools:
                 return Observation(False, "Cannot replace text in a file that does not exist")
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(new)
-            self._edited_untracked.add(str(path.relative_to(self.root)))
             return Observation(
                 True,
                 f"Created {path.relative_to(self.root)}",
@@ -160,15 +158,6 @@ class RepositoryTools:
         if actual != expected:
             return Observation(False, f"Expected {expected} replacements but found {actual}; file unchanged")
         path.write_text(content.replace(old, new))
-        relative = str(path.relative_to(self.root))
-        tracked = subprocess.run(
-            ["git", "ls-files", "--error-unmatch", "--", relative],
-            cwd=self.root,
-            capture_output=True,
-            check=False,
-        )
-        if tracked.returncode != 0:
-            self._edited_untracked.add(relative)
         return Observation(
             True,
             f"Replaced {actual} occurrence(s) in {path.relative_to(self.root)}",
@@ -214,11 +203,47 @@ class RepositoryTools:
 
     def _inspect_diff(self, args: JsonObject) -> Observation:
         del args
-        tracked = self._process("git diff --no-ext-diff --", 60)
-        if not tracked.success:
-            return tracked
-        patches = [tracked.output]
-        untracked_files = sorted(self._edited_untracked)
+        output, untracked_files = self.working_tree_patch()
+        output, truncated = _bounded(output)
+        return Observation(True, output, {"untracked_files": untracked_files}, truncated)
+
+    def working_tree_patch(self) -> tuple[str, list[str]]:
+        """Return an unbounded patch for the repository's current working-tree state."""
+        head = subprocess.run(
+            ["git", "rev-parse", "--verify", "HEAD"],
+            cwd=self.root,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        if head.returncode == 0:
+            base = "HEAD"
+        else:
+            empty_tree = subprocess.run(
+                ["git", "mktree"],
+                cwd=self.root,
+                input="",
+                text=True,
+                capture_output=True,
+                check=True,
+            )
+            base = empty_tree.stdout.strip()
+        tracked = subprocess.run(
+            ["git", "diff", base, "--no-ext-diff", "--"],
+            cwd=self.root,
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+        untracked = subprocess.run(
+            ["git", "ls-files", "--others", "--exclude-standard"],
+            cwd=self.root,
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+        patches = [tracked.stdout]
+        untracked_files = sorted(untracked.stdout.splitlines())
         for relative in untracked_files:
             path = self._path(relative)
             try:
@@ -227,7 +252,4 @@ class RepositoryTools:
                 patches.append(f"Binary untracked file: {relative}\n")
                 continue
             patches.append("".join(unified_diff([], lines, fromfile="/dev/null", tofile=f"b/{relative}")))
-        output, truncated = _bounded("".join(patches))
-        metadata = dict(tracked.metadata)
-        metadata["untracked_files"] = untracked_files
-        return Observation(True, output, metadata, truncated)
+        return "".join(patches), untracked_files

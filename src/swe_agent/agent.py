@@ -48,6 +48,10 @@ class Agent:
                     "error": state.error,
                     "validation_succeeded": state.validation_succeeded,
                     "diff_inspected": state.diff_inspected,
+                    "final_patch": state.final_patch,
+                    "final_validation_succeeded": (
+                        None if state.final_validation is None else state.final_validation.success
+                    ),
                 }
             )
             return state
@@ -81,6 +85,11 @@ class Agent:
                     state.events.append(Event(action, observation))
                     self._log(state, action, observation)
                     continue
+                finalization_error = self._finalize(state)
+                if finalization_error is not None:
+                    state.events.append(Event(action, finalization_error))
+                    self._log(state, action, finalization_error)
+                    continue
                 state.status = "completed"
                 state.summary = action.summary
                 observation = Observation(True, "Completion accepted")
@@ -102,6 +111,44 @@ class Agent:
         if state.status == "running":
             state.status = "step_limit"
         return state
+
+    def _finalize(self, state: AgentState) -> Observation | None:
+        validation_event = next(
+            (
+                event
+                for event in reversed(state.events)
+                if isinstance(event.action, ToolCall)
+                and event.action.name == "run_tests"
+                and event.observation.success
+            ),
+            None,
+        )
+        if validation_event is None:
+            return Observation(False, "Finalization requires a previous successful run_tests call")
+
+        before_patch, _ = self.tools.working_tree_patch()
+        validation_action = validation_event.action
+        if not isinstance(validation_action, ToolCall):
+            return Observation(False, "Finalization could not recover the validation command")
+        validation_arguments = dict(validation_action.arguments)
+        validation_arguments["command"] = validation_event.observation.metadata["command"]
+        validation = self.tools.execute("run_tests", validation_arguments)
+        state.final_validation = validation
+        after_patch, _ = self.tools.working_tree_patch()
+        if not validation.success:
+            state.validation_succeeded = False
+            state.diff_inspected = False
+            return Observation(False, "System final validation failed:\n" + validation.output)
+        if before_patch != after_patch:
+            state.validation_succeeded = False
+            state.diff_inspected = False
+            return Observation(
+                False,
+                "System final validation modified the working tree; inspect the changes, clean up, "
+                "and validate again.",
+            )
+        state.final_patch = after_patch
+        return None
 
     def _is_repeated(self, state: AgentState, action: ToolCall) -> bool:
         repeated = 1

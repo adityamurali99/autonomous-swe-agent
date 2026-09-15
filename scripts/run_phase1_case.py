@@ -6,11 +6,10 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 from swe_agent.agent import Agent
 from swe_agent.gemini_model import GeminiModel
-from swe_agent.models import ToolCall
 from swe_agent.trace import state_to_trace
 
 
@@ -25,10 +24,7 @@ def changed_files(repository: Path) -> list[str]:
 
 
 def final_patch(state: Any) -> str:
-    for event in reversed(state.events):
-        if isinstance(event.action, ToolCall) and event.action.name == "inspect_diff":
-            return cast(str, event.observation.output)
-    return ""
+    return state.final_patch or ""
 
 
 def normalized_patch(patch: str) -> str:
