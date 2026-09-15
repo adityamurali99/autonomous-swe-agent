@@ -1,0 +1,31 @@
+{
+  "case_id": "typescript-async-return",
+  "model": "gemini-3.1-flash-lite",
+  "expected_behavior": "loadUpperName resolves the loaded name and returns it uppercased.",
+  "passed": true,
+  "checks": {
+    "agent_completed": true,
+    "agent_validation_succeeded": true,
+    "independent_validation_passed": true,
+    "changed_files_match": true,
+    "expected_content_present": true
+  },
+  "expected_changed_files": [
+    "src/user.ts"
+  ],
+  "actual_changed_files": [
+    "src/user.ts"
+  ],
+  "content_checks": {
+    "src/user.ts": true
+  },
+  "patch_comparison": {
+    "normalized_reference_matches": false
+  },
+  "validation": {
+    "command": "npm test",
+    "exit_code": 0,
+    "stdout": "\n> test\n> tsc --noEmit\n\n",
+    "stderr": ""
+  }
+}

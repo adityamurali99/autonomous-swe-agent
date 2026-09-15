@@ -1,0 +1,158 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "total": 10,
+  "passed": 6,
+  "failed": 4,
+  "results": [
+    {
+      "case_id": "python-clamp-boundary",
+      "language": "Python",
+      "passed": true,
+      "status": "completed",
+      "steps": 7,
+      "error": null,
+      "checks": {
+        "agent_completed": true,
+        "agent_validation_succeeded": true,
+        "independent_validation_passed": true,
+        "changed_files_match": true,
+        "expected_content_present": true
+      }
+    },
+    {
+      "case_id": "python-csv-whitespace",
+      "language": "Python",
+      "passed": false,
+      "status": "completed",
+      "steps": 8,
+      "error": null,
+      "checks": {
+        "agent_completed": true,
+        "agent_validation_succeeded": true,
+        "independent_validation_passed": true,
+        "changed_files_match": true,
+        "expected_content_present": false
+      }
+    },
+    {
+      "case_id": "python-makefile-discovery",
+      "language": "Python",
+      "passed": true,
+      "status": "completed",
+      "steps": 10,
+      "error": null,
+      "checks": {
+        "agent_completed": true,
+        "agent_validation_succeeded": true,
+        "independent_validation_passed": true,
+        "changed_files_match": true,
+        "expected_content_present": true
+      }
+    },
+    {
+      "case_id": "python-missing-slugify",
+      "language": "Python",
+      "passed": false,
+      "status": "completed",
+      "steps": 10,
+      "error": null,
+      "checks": {
+        "agent_completed": true,
+        "agent_validation_succeeded": true,
+        "independent_validation_passed": true,
+        "changed_files_match": true,
+        "expected_content_present": false
+      }
+    },
+    {
+      "case_id": "python-off-by-one",
+      "language": "Python",
+      "passed": true,
+      "status": "completed",
+      "steps": 8,
+      "error": null,
+      "checks": {
+        "agent_completed": true,
+        "agent_validation_succeeded": true,
+        "independent_validation_passed": true,
+        "changed_files_match": true,
+        "expected_content_present": true
+      }
+    },
+    {
+      "case_id": "typescript-api-rename",
+      "language": "TypeScript",
+      "passed": true,
+      "status": "completed",
+      "steps": 14,
+      "error": null,
+      "checks": {
+        "agent_completed": true,
+        "agent_validation_succeeded": true,
+        "independent_validation_passed": true,
+        "changed_files_match": true,
+        "expected_content_present": true
+      }
+    },
+    {
+      "case_id": "typescript-async-return",
+      "language": "TypeScript",
+      "passed": true,
+      "status": "completed",
+      "steps": 12,
+      "error": null,
+      "checks": {
+        "agent_completed": true,
+        "agent_validation_succeeded": true,
+        "independent_validation_passed": true,
+        "changed_files_match": true,
+        "expected_content_present": true
+      }
+    },
+    {
+      "case_id": "typescript-falsy-default",
+      "language": "TypeScript",
+      "passed": false,
+      "status": "completed",
+      "steps": 19,
+      "error": null,
+      "checks": {
+        "agent_completed": true,
+        "agent_validation_succeeded": true,
+        "independent_validation_passed": true,
+        "changed_files_match": true,
+        "expected_content_present": false
+      }
+    },
+    {
+      "case_id": "typescript-prefix-check",
+      "language": "TypeScript",
+      "passed": true,
+      "status": "completed",
+      "steps": 8,
+      "error": null,
+      "checks": {
+        "agent_completed": true,
+        "agent_validation_succeeded": true,
+        "independent_validation_passed": true,
+        "changed_files_match": true,
+        "expected_content_present": true
+      }
+    },
+    {
+      "case_id": "typescript-signature-update",
+      "language": "TypeScript",
+      "passed": false,
+      "status": "completed",
+      "steps": 30,
+      "error": null,
+      "checks": {
+        "agent_completed": true,
+        "agent_validation_succeeded": true,
+        "independent_validation_passed": true,
+        "changed_files_match": true,
+        "expected_content_present": false
+      }
+    }
+  ]
+}

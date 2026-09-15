@@ -1,0 +1,12 @@
+diff --git a/src/user.ts b/src/user.ts
+index 91570b5..c5a48f1 100644
+--- a/src/user.ts
++++ b/src/user.ts
+@@ -3,5 +3,6 @@ async function loadName(id: number): Promise<string> {
+ }
+ 
+ export async function loadUpperName(id: number): Promise<string> {
+-  return loadName(id).toString().toUpperCase();
++  const name = await loadName(id);
++  return name.toUpperCase();
+ }

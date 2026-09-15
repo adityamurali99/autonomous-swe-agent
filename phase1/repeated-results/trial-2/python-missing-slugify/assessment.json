@@ -1,0 +1,31 @@
+{
+  "case_id": "python-missing-slugify",
+  "model": "gemini-3.1-flash-lite",
+  "expected_behavior": "slugify produces stable lowercase URL slugs and the test suite passes.",
+  "passed": false,
+  "checks": {
+    "agent_completed": true,
+    "agent_validation_succeeded": true,
+    "independent_validation_passed": true,
+    "changed_files_match": true,
+    "expected_content_present": false
+  },
+  "expected_changed_files": [
+    "slug.py"
+  ],
+  "actual_changed_files": [
+    "slug.py"
+  ],
+  "content_checks": {
+    "slug.py": false
+  },
+  "patch_comparison": {
+    "normalized_reference_matches": false
+  },
+  "validation": {
+    "command": "python -m unittest discover -v",
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "test_collapses_separators (test_slug.SlugifyTest.test_collapses_separators) ... ok\ntest_normalizes_words (test_slug.SlugifyTest.test_normalizes_words) ... ok\n\n----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK\n"
+  }
+}

@@ -1,0 +1,21 @@
+diff --git a/src/greet.ts b/src/greet.ts
+index ae9dfa6..73c6104 100644
+--- a/src/greet.ts
++++ b/src/greet.ts
+@@ -1,3 +1,3 @@
+-export function greet(name: string): string {
+-  return `Hello, ${name}`;
++export function greet(name: string, punctuation: string): string {
++  return `Hello, ${name}${punctuation}`;
+ }
+diff --git a/src/welcome.ts b/src/welcome.ts
+index 8e21dfb..3020c07 100644
+--- a/src/welcome.ts
++++ b/src/welcome.ts
+@@ -1,5 +1,5 @@
+ import { greet } from "./greet";
+ 
+ export function welcome(name: string): string {
+-  return greet(name);
++  return greet(name, '!');
+ }

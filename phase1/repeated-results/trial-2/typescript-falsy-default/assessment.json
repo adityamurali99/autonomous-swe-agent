@@ -1,0 +1,29 @@
+{
+  "case_id": "typescript-falsy-default",
+  "model": "gemini-3.1-flash-lite",
+  "expected_behavior": "displayCount preserves zero while falling back for nullish values.",
+  "passed": false,
+  "checks": {
+    "agent_completed": false,
+    "agent_validation_succeeded": false,
+    "independent_validation_passed": true,
+    "changed_files_match": false,
+    "expected_content_present": false
+  },
+  "expected_changed_files": [
+    "src/count.ts"
+  ],
+  "actual_changed_files": [],
+  "content_checks": {
+    "src/count.ts": false
+  },
+  "patch_comparison": {
+    "normalized_reference_matches": false
+  },
+  "validation": {
+    "command": "npm test",
+    "exit_code": 0,
+    "stdout": "\n> test\n> tsc --noEmit\n\n",
+    "stderr": ""
+  }
+}

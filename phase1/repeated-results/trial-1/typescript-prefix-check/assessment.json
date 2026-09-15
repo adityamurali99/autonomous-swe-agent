@@ -1,0 +1,31 @@
+{
+  "case_id": "typescript-prefix-check",
+  "model": "gemini-3.1-flash-lite",
+  "expected_behavior": "Only URLs with the secure scheme at the beginning are accepted.",
+  "passed": true,
+  "checks": {
+    "agent_completed": true,
+    "agent_validation_succeeded": true,
+    "independent_validation_passed": true,
+    "changed_files_match": true,
+    "expected_content_present": true
+  },
+  "expected_changed_files": [
+    "src/url.js"
+  ],
+  "actual_changed_files": [
+    "src/url.js"
+  ],
+  "content_checks": {
+    "src/url.js": true
+  },
+  "patch_comparison": {
+    "normalized_reference_matches": true
+  },
+  "validation": {
+    "command": "npm test",
+    "exit_code": 0,
+    "stdout": "\n> test\n> node --test test/*.test.js\n\n(node:36004) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///private<temporary-repository>/test/url.test.js is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to /private<temporary-repository>/package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)\n✔ accepts a secure URL (0.791791ms)\n✔ rejects embedded scheme (0.063833ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 89.438291\n",
+    "stderr": ""
+  }
+}
