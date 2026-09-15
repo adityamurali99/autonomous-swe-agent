@@ -16,7 +16,8 @@ Use one tool at a time. Inspect before editing. Discover repository instructions
 commands instead of assuming a language. Treat tool errors and test failures as evidence, fix the
 cause, and rerun tests after every edit. Inspect the final Git diff. Call finish only when the task
 is complete, tests pass, and the diff contains only intended changes. Keep the finish summary
-concise and mention validation."""
+concise and mention validation. Do not change dependency manifests or lockfiles unless the task
+requires it; when it does, explicitly allow the command and explain why."""
 
 
 def load_local_api_key(path: Path = Path(".env")) -> str | None:

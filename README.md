@@ -48,6 +48,10 @@ When the model requests completion, the system reruns the last successful test c
 validation that changes the working tree, and generates the returned patch fresh from the final Git
 state. The final patch includes staged, unstaged, and untracked changes.
 
+Commands also protect dependency manifests and lockfiles from incidental mutation. If a task
+explicitly requires dependency changes, the model must opt in through `run_command` and record its
+reason; otherwise those file changes are restored and the command returns a failed observation.
+
 ## Validate this project
 
 ```bash

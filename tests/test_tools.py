@@ -76,3 +76,63 @@ def test_inspect_diff_includes_staged_changes(tmp_path: Path):
     assert diff.success
     assert "-before" in diff.output
     assert "+after" in diff.output
+
+
+def test_run_command_reverts_dependency_manifest_changes(tmp_path: Path):
+    init_repository(tmp_path)
+    manifest = tmp_path / "package.json"
+    manifest.write_text('{"private": true}\n')
+    tools = RepositoryTools(tmp_path)
+
+    result = tools.execute("run_command", {"command": "printf '{\"private\": false}\\n' > package.json"})
+
+    assert not result.success
+    assert manifest.read_text() == '{"private": true}\n'
+    assert result.metadata["dependency_files_changed"] == ["package.json"]
+    assert result.metadata["dependency_changes_reverted"] is True
+
+
+def test_run_command_removes_unauthorized_new_lockfile(tmp_path: Path):
+    init_repository(tmp_path)
+    tools = RepositoryTools(tmp_path)
+
+    result = tools.execute("run_command", {"command": "printf lock > package-lock.json"})
+
+    assert not result.success
+    assert not (tmp_path / "package-lock.json").exists()
+    assert result.metadata["dependency_files_changed"] == ["package-lock.json"]
+
+
+def test_run_command_allows_explained_dependency_changes(tmp_path: Path):
+    init_repository(tmp_path)
+    manifest = tmp_path / "pyproject.toml"
+    manifest.write_text("before\n")
+    tools = RepositoryTools(tmp_path)
+
+    result = tools.execute(
+        "run_command",
+        {
+            "command": "printf 'after\\n' > pyproject.toml",
+            "allow_dependency_changes": True,
+            "dependency_change_reason": "The task explicitly requests a new dependency.",
+        },
+    )
+
+    assert result.success
+    assert manifest.read_text() == "after\n"
+    assert result.metadata["dependency_files_changed"] == ["pyproject.toml"]
+    assert result.metadata["dependency_change_reason"] == "The task explicitly requests a new dependency."
+
+
+def test_run_command_requires_reason_for_dependency_override(tmp_path: Path):
+    init_repository(tmp_path)
+    tools = RepositoryTools(tmp_path)
+
+    result = tools.execute(
+        "run_command",
+        {"command": "touch package-lock.json", "allow_dependency_changes": True},
+    )
+
+    assert not result.success
+    assert "reason is required" in result.output
+    assert not (tmp_path / "package-lock.json").exists()

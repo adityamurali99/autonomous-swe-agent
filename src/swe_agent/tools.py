@@ -6,12 +6,18 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from difflib import unified_diff
+from fnmatch import fnmatch
 from pathlib import Path
 
 from swe_agent.discovery import discover_test_commands
 from swe_agent.models import JsonObject, Observation
 
 MAX_OUTPUT = 30_000
+DEPENDENCY_FILE_PATTERNS = {
+    "Cargo.lock", "Cargo.toml", "Gemfile", "Gemfile.lock", "Pipfile", "Pipfile.lock",
+    "build.gradle", "build.gradle.kts", "go.mod", "go.sum", "gradle.lockfile", "package-lock.json",
+    "package.json", "pnpm-lock.yaml", "poetry.lock", "pom.xml", "pyproject.toml", "uv.lock", "yarn.lock",
+}
 
 
 def _bounded(text: str) -> tuple[str, bool]:
@@ -90,9 +96,12 @@ class RepositoryTools:
                 "new_text": {"type": "string"},
                 "expected_replacements": {"type": "integer", "default": 1}},
                 "required": ["path", "old_text", "new_text"]}, self._edit_file),
-            Tool("run_command", "Run a build, diagnostic, or focused command in the repository.", obj | {
+            Tool("run_command", "Run a build, diagnostic, or focused command in the repository. "
+                 "Dependency files are restored unless changes are explicitly allowed with a reason.", obj | {
                 "properties": {"command": {"type": "string"}, "timeout_seconds": {
-                    "type": "integer", "default": 120}}, "required": ["command"]}, self._run_command),
+                    "type": "integer", "default": 120}, "allow_dependency_changes": {
+                    "type": "boolean", "default": False}, "dependency_change_reason": {
+                    "type": "string"}}, "required": ["command"]}, self._run_command),
             Tool("run_tests", "Run an explicit test command or the best conventionally discovered one.", obj | {
                 "properties": {"command": {"type": "string"}, "timeout_seconds": {
                     "type": "integer", "default": 300}}, "required": []}, self._run_tests),
@@ -183,7 +192,16 @@ class RepositoryTools:
             return Observation(False, str(partial), {"command": command, "timed_out": True})
 
     def _run_command(self, args: JsonObject) -> Observation:
-        return self._process(str(args["command"]), int(args.get("timeout_seconds", 120)))
+        allow_changes = bool(args.get("allow_dependency_changes", False))
+        reason = str(args.get("dependency_change_reason", "")).strip()
+        if allow_changes and not reason:
+            return Observation(False, "dependency_change_reason is required when dependency changes are allowed")
+        return self._guarded_process(
+            str(args["command"]),
+            int(args.get("timeout_seconds", 120)),
+            allow_dependency_changes=allow_changes,
+            dependency_change_reason=reason or None,
+        )
 
     def _run_tests(self, args: JsonObject) -> Observation:
         candidates = discover_test_commands(self.root)
@@ -196,10 +214,58 @@ class RepositoryTools:
                     {"candidates": []},
                 )
             command = candidates[0].command
-        result = self._process(str(command), int(args.get("timeout_seconds", 300)))
+        result = self._guarded_process(str(command), int(args.get("timeout_seconds", 300)))
         metadata = dict(result.metadata)
         metadata["candidates"] = [candidate.__dict__ for candidate in candidates]
         return Observation(result.success, result.output, metadata, result.truncated)
+
+    def _guarded_process(
+        self,
+        command: str,
+        timeout: int,
+        *,
+        allow_dependency_changes: bool = False,
+        dependency_change_reason: str | None = None,
+    ) -> Observation:
+        before = self._dependency_snapshot()
+        result = self._process(command, timeout)
+        after = self._dependency_snapshot()
+        changed = sorted(path for path in before.keys() | after.keys() if before.get(path) != after.get(path))
+        metadata = dict(result.metadata)
+        if not changed:
+            return result
+        metadata["dependency_files_changed"] = changed
+        if allow_dependency_changes:
+            metadata["dependency_change_reason"] = dependency_change_reason
+            return Observation(result.success, result.output, metadata, result.truncated)
+
+        for relative in changed:
+            path = self._path(relative)
+            if relative in before:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(before[relative])
+            elif path.exists():
+                path.unlink()
+        metadata["dependency_changes_reverted"] = True
+        message = result.output + ("\n" if result.output else "") + (
+            "Command changed protected dependency files; changes were reverted: " + ", ".join(changed)
+        )
+        output, truncated = _bounded(message)
+        return Observation(False, output, metadata, truncated)
+
+    def _dependency_snapshot(self) -> dict[str, bytes]:
+        ignored = {".git", ".venv", "__pycache__", "dist", "build", "node_modules", "venv"}
+        snapshot: dict[str, bytes] = {}
+        for current, directories, files in os.walk(self.root):
+            directories[:] = [directory for directory in directories if directory not in ignored]
+            for filename in files:
+                if filename not in DEPENDENCY_FILE_PATTERNS and not fnmatch(filename, "requirements*.txt"):
+                    continue
+                path = Path(current) / filename
+                if path.is_symlink():
+                    continue
+                snapshot[str(path.relative_to(self.root))] = path.read_bytes()
+        return snapshot
 
     def _inspect_diff(self, args: JsonObject) -> Observation:
         del args

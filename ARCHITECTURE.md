@@ -67,14 +67,17 @@ Observation`. The initial registry contains:
 - `read_file(path, start_line, end_line)`
 - `search_code(query, path, glob)`
 - `edit_file(path, old_text, new_text, expected_replacements)`
-- `run_command(command, timeout_seconds)`
+- `run_command(command, timeout_seconds, allow_dependency_changes, dependency_change_reason)`
 - `run_tests(command?, timeout_seconds)`
 - `inspect_diff()`
 
 `edit_file` uses exact replacement to make edits reviewable and detect stale context. A future
 patch-based editor can implement the same interface. `run_tests` accepts an explicit discovered
 command or selects the highest-ranked candidate. `run_command` exists for builds and focused
-checks; process output and runtime are bounded.
+checks; process output and runtime are bounded. Commands are transactional around common dependency
+manifests and lockfiles. Unauthorized changes are restored and reported as a failed observation;
+tasks that genuinely require dependency changes must opt in with a non-empty reason. Test commands
+always use the protected path.
 
 ## Loop and completion
 
