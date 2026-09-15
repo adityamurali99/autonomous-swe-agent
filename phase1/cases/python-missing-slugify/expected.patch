@@ -1,0 +1,10 @@
+diff --git a/slug.py b/slug.py
+--- a/slug.py
++++ b/slug.py
+@@ -1,2 +1,5 @@
++import re
++
++
+ def slugify(value: str) -> str:
+-    raise NotImplementedError
++    return re.sub(r"[^a-z0-9]+", "-", value.strip().lower()).strip("-")

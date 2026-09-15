@@ -1,0 +1,9 @@
+{
+  "id": "python-clamp-boundary",
+  "language": "Python",
+  "task": "Bug: clamp(value, minimum, maximum) incorrectly returns maximum for values below minimum. Fix the boundary logic and run the repository tests.",
+  "validation_command": "python -m unittest discover -v",
+  "expected_changed_files": ["ranges.py"],
+  "expected_content": {"ranges.py": ["return minimum"]},
+  "expected_behavior": "Values below the lower bound clamp to minimum, and all unit tests pass."
+}

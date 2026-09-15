@@ -1,0 +1,10 @@
+{
+  "id": "typescript-falsy-default",
+  "language": "TypeScript",
+  "task": "Bug: displayCount turns a valid count of 0 into the fallback value. Preserve zero and only use the fallback when count is null or undefined. Run the repository tests.",
+  "setup_command": "npm install --ignore-scripts --no-audit --no-fund",
+  "validation_command": "npm test",
+  "expected_changed_files": ["src/count.ts"],
+  "expected_content": {"src/count.ts": ["count ?? fallback"]},
+  "expected_behavior": "displayCount preserves zero while falling back for nullish values."
+}

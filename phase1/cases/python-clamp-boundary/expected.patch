@@ -1,0 +1,6 @@
+diff --git a/ranges.py b/ranges.py
+--- a/ranges.py
++++ b/ranges.py
+@@ -3 +3 @@ def clamp(value: int, minimum: int, maximum: int) -> int:
+-        return maximum
++        return minimum

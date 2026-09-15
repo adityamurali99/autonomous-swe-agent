@@ -1,0 +1,6 @@
+diff --git a/pricing.py b/pricing.py
+--- a/pricing.py
++++ b/pricing.py
+@@ -2 +2 @@ def discounted_price(price: float, percent: float) -> float:
+-    return price - percent
++    return price * (1 - percent / 100)

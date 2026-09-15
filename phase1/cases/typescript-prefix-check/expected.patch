@@ -1,0 +1,6 @@
+diff --git a/src/url.js b/src/url.js
+--- a/src/url.js
++++ b/src/url.js
+@@ -2 +2 @@ export function isSecureUrl(value) {
+-  return value.includes("https://");
++  return value.startsWith("https://");

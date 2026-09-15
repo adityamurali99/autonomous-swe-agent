@@ -1,0 +1,9 @@
+{
+  "id": "python-csv-whitespace",
+  "language": "Python",
+  "task": "Bug: parse_tags leaves spaces around comma-separated tags, so 'red, blue' becomes ['red', ' blue']. Strip surrounding whitespace from every tag and validate the fix.",
+  "validation_command": "python -m unittest discover -v",
+  "expected_changed_files": ["tags.py"],
+  "expected_content": {"tags.py": ["part.strip()"]},
+  "expected_behavior": "Every returned tag has surrounding whitespace removed."
+}

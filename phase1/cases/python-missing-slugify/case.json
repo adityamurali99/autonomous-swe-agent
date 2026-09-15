@@ -1,0 +1,9 @@
+{
+  "id": "python-missing-slugify",
+  "language": "Python",
+  "task": "Implement the missing slugify function. It must trim surrounding whitespace, lowercase text, replace each run of non-alphanumeric characters with one hyphen, and remove leading or trailing hyphens. Run the documented tests.",
+  "validation_command": "python -m unittest discover -v",
+  "expected_changed_files": ["slug.py"],
+  "expected_content": {"slug.py": ["re.sub", ".lower()", ".strip(\"-\")"]},
+  "expected_behavior": "slugify produces stable lowercase URL slugs and the test suite passes."
+}

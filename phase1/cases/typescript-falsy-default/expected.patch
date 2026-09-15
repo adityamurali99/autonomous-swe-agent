@@ -1,0 +1,6 @@
+diff --git a/src/count.ts b/src/count.ts
+--- a/src/count.ts
++++ b/src/count.ts
+@@ -2 +2 @@ export function displayCount(count: number | null | undefined, fallback: number): number {
+-  return count || fallback;
++  return count ?? fallback;

@@ -1,0 +1,9 @@
+{
+  "id": "python-makefile-discovery",
+  "language": "Python",
+  "task": "Bug: discounted_price subtracts the percentage number as dollars instead of applying it as a percentage. Fix it and use the repository's documented validation command.",
+  "validation_command": "make test",
+  "expected_changed_files": ["pricing.py"],
+  "expected_content": {"pricing.py": ["price * (1 - percent / 100)"]},
+  "expected_behavior": "A 20 percent discount on 50 is 40 and make test passes."
+}

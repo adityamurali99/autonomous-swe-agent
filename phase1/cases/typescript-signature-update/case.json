@@ -1,0 +1,13 @@
+{
+  "id": "typescript-signature-update",
+  "language": "TypeScript",
+  "task": "Change the public greet function to accept a required punctuation argument and append it after the name. Update every call site to pass '!'. Run the repository tests.",
+  "setup_command": "npm install --ignore-scripts --no-audit --no-fund",
+  "validation_command": "npm test",
+  "expected_changed_files": ["src/greet.ts", "src/welcome.ts"],
+  "expected_content": {
+    "src/greet.ts": ["greet(name: string, punctuation: string)", "${punctuation}"],
+    "src/welcome.ts": ["greet(name, \"!\")"]
+  },
+  "expected_behavior": "The signature and all production call sites use the required punctuation argument."
+}

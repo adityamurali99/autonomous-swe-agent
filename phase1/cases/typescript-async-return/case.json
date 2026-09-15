@@ -1,0 +1,10 @@
+{
+  "id": "typescript-async-return",
+  "language": "TypeScript",
+  "task": "Bug: loadUpperName returns before the asynchronous name lookup finishes, producing '[OBJECT PROMISE]'. Await the lookup before uppercasing the name and run the tests.",
+  "setup_command": "npm install --ignore-scripts --no-audit --no-fund",
+  "validation_command": "npm test",
+  "expected_changed_files": ["src/user.ts"],
+  "expected_content": {"src/user.ts": ["await loadName(id)"]},
+  "expected_behavior": "loadUpperName resolves the loaded name and returns it uppercased."
+}

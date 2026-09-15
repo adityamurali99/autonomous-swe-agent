@@ -41,7 +41,11 @@ From the project root, with `GEMINI_API_KEY` exported or present in the ignored 
 ```bash
 .venv/bin/python scripts/run_phase1_case.py phase1/cases/python-off-by-one
 .venv/bin/python scripts/run_phase1_case.py phase1/cases/typescript-api-rename
+.venv/bin/python scripts/run_phase1_suite.py
 ```
+
+The suite command runs cases sequentially so free-tier rate limits are easier to diagnose. It does
+not stop at the first failure and writes `phase1/results/suite-summary.json` after all cases finish.
 
 Free-tier Gemini runs may pause at rate limits. Bounded retry behavior is expected and is not a
 case failure. Each assessment records the exact model used; the default is `gemini-3.1-flash-lite`.

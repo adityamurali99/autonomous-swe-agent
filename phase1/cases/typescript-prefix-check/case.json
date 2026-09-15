@@ -1,0 +1,10 @@
+{
+  "id": "typescript-prefix-check",
+  "language": "TypeScript",
+  "task": "Bug: isSecureUrl accepts URLs containing https:// anywhere in the string. It should only accept URLs beginning with https://. Fix the implementation and run tests.",
+  "setup_command": "npm install --ignore-scripts --no-audit --no-fund",
+  "validation_command": "npm test",
+  "expected_changed_files": ["src/url.js"],
+  "expected_content": {"src/url.js": ["startsWith(\"https://\")"]},
+  "expected_behavior": "Only URLs with the secure scheme at the beginning are accepted."
+}

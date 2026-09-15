@@ -1,0 +1,5 @@
+{
+  "name": "typescript-prefix-check",
+  "private": true,
+  "scripts": {"test": "node --test test/*.test.js"}
+}

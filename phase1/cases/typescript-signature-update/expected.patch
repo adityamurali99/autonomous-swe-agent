@@ -1,0 +1,15 @@
+diff --git a/src/greet.ts b/src/greet.ts
+--- a/src/greet.ts
++++ b/src/greet.ts
+@@ -1,3 +1,3 @@
+-export function greet(name: string): string {
+-  return `Hello, ${name}`;
++export function greet(name: string, punctuation: string): string {
++  return `Hello, ${name}${punctuation}`;
+ }
+diff --git a/src/welcome.ts b/src/welcome.ts
+--- a/src/welcome.ts
++++ b/src/welcome.ts
+@@ -4 +4 @@ export function welcome(name: string): string {
+-  return greet(name);
++  return greet(name, "!");
