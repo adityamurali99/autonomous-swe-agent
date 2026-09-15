@@ -9,6 +9,7 @@ from typing import Any, cast
 from google import genai
 
 from swe_agent.models import AgentState, Finish, JsonObject, ToolCall
+from swe_agent.observability import NullTracer, Tracer, load_local_env
 
 SYSTEM_PROMPT = """You are an autonomous software engineering agent operating on a local repository.
 Use one tool at a time. Inspect before editing. Discover repository instructions and validation
@@ -20,14 +21,7 @@ concise and mention validation."""
 
 def load_local_api_key(path: Path = Path(".env")) -> str | None:
     """Read GEMINI_API_KEY from a local ignored env file without mutating process state."""
-    if not path.is_file():
-        return None
-    for raw_line in path.read_text().splitlines():
-        key, separator, value = raw_line.partition("=")
-        if separator and key.strip() == "GEMINI_API_KEY":
-            candidate = value.strip().strip('"').strip("'")
-            return candidate or None
-    return None
+    return load_local_env(path).get("GEMINI_API_KEY") or None
 
 
 class GeminiModel:
@@ -38,6 +32,7 @@ class GeminiModel:
         api_key: str | None = None,
         client: Any | None = None,
         max_rate_limit_retries: int = 3,
+        tracer: Tracer | None = None,
     ) -> None:
         self.client = client or genai.Client(
             api_key=api_key or load_local_api_key(),
@@ -45,6 +40,7 @@ class GeminiModel:
         )
         self.model = model
         self.max_rate_limit_retries = max_rate_limit_retries
+        self.tracer = tracer or NullTracer()
 
     def next_action(self, state: AgentState, tool_schemas: list[JsonObject]) -> ToolCall | Finish:
         finish_schema: JsonObject = {
@@ -59,26 +55,32 @@ class GeminiModel:
             },
         }
         tools = [self._gemini_schema(schema) for schema in [*tool_schemas, finish_schema]]
-        interaction = self._create_interaction(
-            model=self.model,
-            input=self._context(state),
-            tools=tools,
-            generation_config={
-                "tool_choice": {
-                    "allowed_tools": {"mode": "any", "tools": [tool["name"] for tool in tools]}
-                }
-            },
-        )
-        for raw_step in interaction.steps or []:
-            step = cast(Any, raw_step)
-            if step.type != "function_call":
-                continue
-            name = str(step.name)
-            arguments = cast(JsonObject, step.arguments)
-            if name == "finish":
-                return Finish(str(arguments["summary"]))
-            return ToolCall(name, arguments)
-        raise RuntimeError("Gemini response did not contain a function call")
+        context = self._context(state)
+        trace_input: JsonObject = {"context": json.loads(context), "tools": tools}
+        with self.tracer.generation(
+            name="gemini-next-action", model=self.model, input=trace_input
+        ) as generation:
+            interaction = self._create_interaction(
+                model=self.model,
+                input=context,
+                tools=tools,
+                generation_config={
+                    "tool_choice": {
+                        "allowed_tools": {"mode": "any", "tools": [tool["name"] for tool in tools]}
+                    }
+                },
+            )
+            for raw_step in interaction.steps or []:
+                step = cast(Any, raw_step)
+                if step.type != "function_call":
+                    continue
+                name = str(step.name)
+                arguments = cast(JsonObject, step.arguments)
+                generation.update(output={"tool": name, "arguments": arguments})
+                if name == "finish":
+                    return Finish(str(arguments["summary"]))
+                return ToolCall(name, arguments)
+            raise RuntimeError("Gemini response did not contain a function call")
 
     def _create_interaction(self, **request: Any) -> Any:
         for attempt in range(self.max_rate_limit_retries + 1):

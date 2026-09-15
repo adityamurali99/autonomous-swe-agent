@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -22,6 +23,27 @@ class FakeInteractions:
         return SimpleNamespace(steps=[step])
 
 
+class FakeGeneration:
+    def __init__(self) -> None:
+        self.output: Any = None
+
+    def update(self, **kwargs: Any) -> None:
+        self.output = kwargs.get("output")
+
+
+class FakeTracer:
+    enabled = True
+
+    def __init__(self) -> None:
+        self.input: dict[str, Any] = {}
+        self.generation_observation = FakeGeneration()
+
+    @contextmanager
+    def generation(self, *, name: str, model: str, input: dict[str, Any]):
+        self.input = input
+        yield self.generation_observation
+
+
 def test_gemini_adapter_translates_function_call_and_schema(tmp_path: Path):
     interactions = FakeInteractions()
     client = SimpleNamespace(interactions=interactions)
@@ -40,6 +62,22 @@ def test_gemini_adapter_translates_function_call_and_schema(tmp_path: Path):
     assert action == ToolCall("read_file", {"path": "README.md"})
     assert all("strict" not in tool for tool in interactions.request["tools"])
     assert interactions.request["model"] == "gemini-3.1-flash-lite"
+
+
+def test_gemini_adapter_traces_exact_model_context_and_output(tmp_path: Path):
+    interactions = FakeInteractions()
+    tracer = FakeTracer()
+    model = GeminiModel(client=SimpleNamespace(interactions=interactions), tracer=tracer)  # type: ignore[arg-type]
+
+    action = model.next_action(AgentState(tmp_path, "Inspect the readme"), [])
+
+    assert tracer.input["context"]["task"] == "Inspect the readme"
+    assert tracer.input["tools"][-1]["name"] == "finish"
+    assert tracer.generation_observation.output == {
+        "tool": "read_file",
+        "arguments": {"path": "README.md"},
+    }
+    assert action == ToolCall("read_file", {"path": "README.md"})
 
 
 def test_load_local_api_key(tmp_path: Path):

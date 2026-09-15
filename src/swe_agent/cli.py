@@ -8,6 +8,7 @@ from pathlib import Path
 from swe_agent.agent import Agent
 from swe_agent.gemini_model import GeminiModel
 from swe_agent.models import AgentState, ToolCall
+from swe_agent.observability import create_tracer
 from swe_agent.trace import write_trace
 
 
@@ -23,17 +24,21 @@ def main() -> None:
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO if args.verbose else logging.WARNING, format="%(message)s")
 
+    tracer = create_tracer()
     try:
         state = Agent(
-            GeminiModel(args.model),
+            GeminiModel(args.model, tracer=tracer),
             args.repository,
             max_steps=args.max_steps,
             allow_dirty=args.allow_dirty,
+            tracer=tracer,
         ).run(args.task)
     except ValueError as exc:
         state = AgentState(args.repository.resolve(), args.task, args.max_steps)
         state.status = "setup_error"
         state.error = f"{type(exc).__name__}: {exc}"
+    finally:
+        tracer.flush()
     if args.trace_file:
         write_trace(state, args.trace_file)
     diff = ""
@@ -44,7 +49,8 @@ def main() -> None:
     print(json.dumps({"status": state.status, "steps": state.step, "summary": state.summary,
                       "error": state.error,
                       "validation_succeeded": state.validation_succeeded,
-                      "diff_inspected": state.diff_inspected, "diff": diff}, indent=2))
+                      "diff_inspected": state.diff_inspected, "diff": diff,
+                      "langfuse_tracing": tracer.enabled}, indent=2))
     if state.status != "completed":
         raise SystemExit(1)
 

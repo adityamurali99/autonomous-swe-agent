@@ -21,6 +21,26 @@ For local development, the CLI also reads `GEMINI_API_KEY` from an ignored `.env
 current working directory. The default model is `gemini-3.1-flash-lite`, selected for its free-tier
 throughput and agentic tool-use focus.
 
+## Inspect runs in Langfuse
+
+Langfuse tracing is optional. Add the following credentials to the same ignored `.env` file:
+
+```dotenv
+LANGFUSE_PUBLIC_KEY=pk-lf-...
+LANGFUSE_SECRET_KEY=sk-lf-...
+LANGFUSE_BASE_URL=https://cloud.langfuse.com
+```
+
+Use `https://us.cloud.langfuse.com` instead when the Langfuse project is in the US region. With
+both keys present, each CLI run records a parent agent trace and a nested generation for every
+Gemini decision. The generation includes the complete model context, tool schemas, selected tool,
+arguments, latency, and provider errors. The CLI reports `"langfuse_tracing": true` when enabled
+and flushes pending events before exiting.
+
+Tracing intentionally includes repository paths, task text, selected file contents, command
+outputs, and diffs because those values are part of the model context. Do not enable it for a
+repository whose contents must not be sent to your configured Langfuse service.
+
 The agent operates directly on the supplied working tree. Use a disposable branch or worktree.
 Commands execute locally with the same permissions as the CLI process.
 

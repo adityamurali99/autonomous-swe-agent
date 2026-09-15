@@ -5,6 +5,7 @@ import logging
 from pathlib import Path
 
 from swe_agent.models import AgentState, Event, Finish, Model, Observation, ToolCall
+from swe_agent.observability import NullTracer, Tracer
 from swe_agent.tools import RepositoryTools
 
 logger = logging.getLogger("swe_agent.agent")
@@ -19,11 +20,13 @@ class Agent:
         max_steps: int = 40,
         max_repeated_actions: int = 3,
         allow_dirty: bool = False,
+        tracer: Tracer | None = None,
     ) -> None:
         self.model = model
         self.tools = RepositoryTools(repository)
         self.max_steps = max_steps
         self.max_repeated_actions = max_repeated_actions
+        self.tracer = tracer or NullTracer()
         if not allow_dirty:
             dirty = self.tools.execute("run_command", {"command": "git status --porcelain"})
             if not dirty.success:
@@ -32,6 +35,24 @@ class Agent:
                 raise ValueError("Repository has uncommitted changes; commit them or pass allow_dirty=True")
 
     def run(self, task: str) -> AgentState:
+        with self.tracer.agent(
+            input={"repository": str(self.tools.root), "task": task},
+            metadata={"max_steps": self.max_steps},
+        ) as trace:
+            state = self._run(task)
+            trace.update(
+                output={
+                    "status": state.status,
+                    "steps": state.step,
+                    "summary": state.summary,
+                    "error": state.error,
+                    "validation_succeeded": state.validation_succeeded,
+                    "diff_inspected": state.diff_inspected,
+                }
+            )
+            return state
+
+    def _run(self, task: str) -> AgentState:
         state = AgentState(self.tools.root, task, self.max_steps)
         while state.step < state.max_steps and state.status == "running":
             try:
