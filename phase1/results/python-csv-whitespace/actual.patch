@@ -1,0 +1,8 @@
+diff --git a/tags.py b/tags.py
+index b41142e..b15acc6 100644
+--- a/tags.py
++++ b/tags.py
+@@ -1,2 +1,2 @@
+ def parse_tags(raw: str) -> list[str]:
+-    return raw.split(",")
++    return [tag.strip() for tag in raw.split(",")]

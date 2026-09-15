@@ -1,0 +1,31 @@
+{
+  "case_id": "python-csv-whitespace",
+  "model": "gemini-3.1-flash-lite",
+  "expected_behavior": "Every returned tag has surrounding whitespace removed.",
+  "passed": false,
+  "checks": {
+    "agent_completed": true,
+    "agent_validation_succeeded": true,
+    "independent_validation_passed": true,
+    "changed_files_match": true,
+    "expected_content_present": false
+  },
+  "expected_changed_files": [
+    "tags.py"
+  ],
+  "actual_changed_files": [
+    "tags.py"
+  ],
+  "content_checks": {
+    "tags.py": false
+  },
+  "patch_comparison": {
+    "normalized_reference_matches": false
+  },
+  "validation": {
+    "command": "python -m unittest discover -v",
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "test_strips_each_tag (test_tags.ParseTagsTest.test_strips_each_tag) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n"
+  }
+}

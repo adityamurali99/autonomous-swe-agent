@@ -1,0 +1,31 @@
+{
+  "case_id": "python-clamp-boundary",
+  "model": "gemini-3.1-flash-lite",
+  "expected_behavior": "Values below the lower bound clamp to minimum, and all unit tests pass.",
+  "passed": true,
+  "checks": {
+    "agent_completed": true,
+    "agent_validation_succeeded": true,
+    "independent_validation_passed": true,
+    "changed_files_match": true,
+    "expected_content_present": true
+  },
+  "expected_changed_files": [
+    "ranges.py"
+  ],
+  "actual_changed_files": [
+    "ranges.py"
+  ],
+  "content_checks": {
+    "ranges.py": true
+  },
+  "patch_comparison": {
+    "normalized_reference_matches": true
+  },
+  "validation": {
+    "command": "python -m unittest discover -v",
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "test_above_maximum (test_ranges.ClampTest.test_above_maximum) ... ok\ntest_below_minimum (test_ranges.ClampTest.test_below_minimum) ... ok\ntest_inside_range (test_ranges.ClampTest.test_inside_range) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK\n"
+  }
+}

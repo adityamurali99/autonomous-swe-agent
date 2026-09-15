@@ -40,11 +40,15 @@ def main() -> None:
         assessment_path = args.output_root / case["id"] / "assessment.json"
         if assessment_path.is_file():
             assessment = json.loads(assessment_path.read_text())
+            trace = json.loads((args.output_root / case["id"] / "trace.json").read_text())
             results.append(
                 {
                     "case_id": case["id"],
                     "language": case["language"],
                     "passed": assessment["passed"],
+                    "status": trace["status"],
+                    "steps": trace["steps"],
+                    "error": trace["error"],
                     "checks": assessment["checks"],
                 }
             )

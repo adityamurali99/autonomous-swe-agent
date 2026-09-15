@@ -1,0 +1,16 @@
+diff --git a/slug.py b/slug.py
+index 24d2036..e2391cc 100644
+--- a/slug.py
++++ b/slug.py
+@@ -1,2 +1,10 @@
++import re
++
+ def slugify(value: str) -> str:
+-    raise NotImplementedError
++    # Lowercase
++    value = value.lower()
++    # Replace non-alphanumeric with hyphens
++    value = re.sub(r'[^a-z0-9]+', '-', value)
++    # Trim leading/trailing hyphens
++    return value.strip('-')
++
