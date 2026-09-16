@@ -33,13 +33,18 @@ LANGFUSE_BASE_URL=https://cloud.langfuse.com
 
 Use `https://us.cloud.langfuse.com` instead when the Langfuse project is in the US region. With
 both keys present, each CLI run records a parent agent trace and a nested generation for every
-Gemini decision. The generation includes the complete model context, tool schemas, selected tool,
+Gemini decision. The generation includes the selected model context, tool schemas, selected tool,
 arguments, latency, and provider errors. The CLI reports `"langfuse_tracing": true` when enabled
 and flushes pending events before exiting.
 
 Tracing intentionally includes repository paths, task text, selected file contents, command
 outputs, and diffs because those values are part of the model context. Do not enable it for a
 repository whose contents must not be sent to your configured Langfuse service.
+
+The local JSON trace always retains the complete action/observation trajectory. The model receives
+a separate bounded view that prioritizes recent work, failures, edits, diffs, and the newest window
+read from each file. A derived progress summary redirects the model after repeated reproduction
+work without a production-code change.
 
 The agent operates directly on the supplied working tree. Use a disposable branch or worktree.
 Commands execute locally with the same permissions as the CLI process.

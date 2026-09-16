@@ -5,6 +5,7 @@ import logging
 import time
 from pathlib import Path
 
+from swe_agent.context import ContextSelector
 from swe_agent.execution import CommandExecutor
 from swe_agent.models import (
     AgentState,
@@ -17,6 +18,7 @@ from swe_agent.models import (
     ToolCall,
 )
 from swe_agent.observability import NullTracer, Tracer
+from swe_agent.progress import ProgressTracker
 from swe_agent.tools import RepositoryTools
 
 logger = logging.getLogger("swe_agent.agent")
@@ -34,6 +36,7 @@ class Agent:
         limits: ResourceLimits | None = None,
         executor: CommandExecutor | None = None,
         tracer: Tracer | None = None,
+        context_selector: ContextSelector | None = None,
     ) -> None:
         self.model = model
         self.tools = RepositoryTools(repository, executor=executor)
@@ -41,6 +44,8 @@ class Agent:
         self.max_repeated_actions = max_repeated_actions
         self.tracer = tracer or NullTracer()
         self.limits = limits or ResourceLimits()
+        self.context_selector = context_selector or ContextSelector()
+        self.progress_tracker = ProgressTracker()
         if not allow_dirty:
             dirty = self.tools.execute("run_command", {"command": "git status --porcelain"})
             if not dirty.success:
@@ -81,6 +86,9 @@ class Agent:
                 state.status = "resource_limit"
                 state.error = limit_error
                 break
+            progress = self.progress_tracker.evaluate(state.events)
+            state.progress = progress.as_dict()
+            state.model_events = self.context_selector.select(state)
             try:
                 action = self.model.next_action(state, self.tools.schemas)
             except Exception as exc:  # noqa: BLE001 - provider failures become inspectable state
@@ -134,6 +142,7 @@ class Agent:
 
         if state.status == "running":
             state.status = "step_limit"
+        state.progress = self.progress_tracker.evaluate(state.events).as_dict()
         state.runtime_seconds = round(time.monotonic() - started, 3)
         return state
 

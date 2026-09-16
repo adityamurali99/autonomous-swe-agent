@@ -2,7 +2,7 @@
 
 ## Shape of the system
 
-The smallest useful design has five boundaries:
+The smallest useful design has eight boundaries:
 
 1. **CLI/application** accepts a repository path, task, model, and limits.
 2. **Agent loop** owns state, asks a model for exactly one next action, executes it, and records
@@ -16,16 +16,21 @@ The smallest useful design has five boundaries:
    validation candidates with evidence. It does not silently execute them.
 6. **Command executor** runs repository commands behind a small protocol. The initial local
    implementation can later be replaced by a container executor without changing agent behavior.
+7. **Context selector** projects the complete trajectory into a bounded, relevance-oriented model
+   view without deleting audit data.
+8. **Progress tracker** derives concrete engineering milestones and anti-stagnation guidance from
+   the action history.
 
-This is intentionally a loop, not a planner/executor graph. Planning, context compression,
-model routing, retries, and evaluation can later be introduced behind the model adapter or as
-policies around the loop without changing tools.
+This is intentionally a loop, not a planner/executor graph. Model routing and richer evaluation can
+be introduced behind existing boundaries without changing tools.
 
 ## Folder structure
 
 ```text
 src/swe_agent/
   agent.py       # state machine and completion invariants
+  context.py     # budgeted projection of the full trace for model decisions
+  progress.py    # engineering milestones and stagnation guidance
   models.py      # actions, observations, state, and model protocol
   gemini_model.py# production model adapter
   tools.py       # generic repository tools and registry
@@ -43,6 +48,10 @@ tests/           # deterministic unit and vertical-slice tests
   leaking through the system.
 - `agent.py`: advances state one action at a time, enforces step limits, and requires successful
   test execution plus diff inspection before accepting completion.
+- `context.py`: keeps recent evidence, edits, failures, diffs, and the latest window read from each
+  file while eliding oversized observations and obsolete repeated reads.
+- `progress.py`: distinguishes reproduction work from production edits, tracks localization and
+  post-edit validation, and emits corrective guidance when the agent repeats reproductions.
 - `tools.py`: validates arguments, performs bounded I/O/process work, truncates observations, and
   reports errors as data so the model can recover.
 - `execution.py`: provides the command protocol and local subprocess implementation, including
@@ -57,8 +66,9 @@ tests/           # deterministic unit and vertical-slice tests
 `AgentState` contains the immutable task and repository path plus an ordered event history,
 current step, maximum steps, validation state, whether a diff was inspected, the system-owned
 final validation result and patch, model request/token/cost usage, wall-clock runtime, and terminal
-status/summary. The history is the initial context strategy: retain all bounded observations. A
-later context selector can project this state into a smaller model view.
+status/summary. `events` retains the complete trajectory for evaluation. `model_events` is a
+bounded projection selected before each decision, and `progress` is a compact derived view of the
+engineering work completed so far. Context selection never mutates or removes trace events.
 
 An event is an `Action` paired with its `Observation`. Actions are either a named tool call with
 JSON arguments or a finish request. Observations contain success, textual output, structured
@@ -78,7 +88,10 @@ Observation`. The initial registry contains:
 - `run_tests(command?, timeout_seconds)`
 - `inspect_diff()`
 
-`edit_file` uses exact replacement to make edits reviewable and detect stale context. A future
+Navigation responses are intentionally focused: root listings default to depth two, file reads
+default to 160-line windows with continuation hints, and searches return at most 80 matches with
+file counts and narrowing guidance. `edit_file` uses exact replacement to make edits reviewable
+and detect stale context. A future
 patch-based editor can implement the same interface. `run_tests` accepts an explicit discovered
 command or selects the highest-ranked candidate. `run_command` exists for builds and focused
 checks; process output and runtime are bounded. Commands are transactional around common dependency
@@ -88,9 +101,13 @@ always use the protected path.
 
 ## Loop and completion
 
-The model receives the task, current state, recent tool observations, and tool schemas. It returns
-one tool call. The registry executes it and appends an event. Tool errors remain in history and the
-model chooses how to recover. A finish request is considered only after a successful `run_tests`
+Before each decision, the progress tracker summarizes inspection, reproduction, localization,
+production edits, post-edit validation, and diff review. The context selector preserves recent
+events plus important older failures, edits, diffs, and the newest read of each file within a
+configurable character budget. The model receives that projection, progress guidance, the task,
+and tool schemas. It returns one tool call. The registry executes it and appends the full event to
+the durable trajectory. Tool errors remain available and the model chooses how to recover. A
+finish request is considered only after a successful `run_tests`
 and `inspect_diff`; otherwise the loop returns a corrective observation. The system then reruns the
 exact successful validation command, rejects completion if validation fails or changes the
 working-tree patch, and captures a fresh authoritative diff against `HEAD`. This final diff includes

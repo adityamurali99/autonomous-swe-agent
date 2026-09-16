@@ -5,7 +5,7 @@ from pathlib import Path
 
 from swe_agent.models import AgentState, JsonObject, ToolCall
 
-TRACE_SCHEMA_VERSION = 3
+TRACE_SCHEMA_VERSION = 4
 
 
 def state_to_trace(state: AgentState) -> JsonObject:
@@ -39,6 +39,7 @@ def state_to_trace(state: AgentState) -> JsonObject:
         "steps": state.step,
         "validation_succeeded": state.validation_succeeded,
         "diff_inspected": state.diff_inspected,
+        "progress": state.progress,
         "summary": state.summary,
         "error": state.error,
         "final_patch": state.final_patch,

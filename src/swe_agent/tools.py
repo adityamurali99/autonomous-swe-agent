@@ -12,7 +12,9 @@ from swe_agent.discovery import discover_test_commands
 from swe_agent.execution import CommandExecutor, LocalCommandExecutor
 from swe_agent.models import JsonObject, Observation
 
-MAX_OUTPUT = 30_000
+MAX_OUTPUT = 12_000
+MAX_LISTED_FILES = 500
+MAX_SEARCH_MATCHES = 80
 DEPENDENCY_FILE_PATTERNS = {
     "Cargo.lock", "Cargo.toml", "Gemfile", "Gemfile.lock", "Pipfile", "Pipfile.lock",
     "build.gradle", "build.gradle.kts", "go.mod", "go.sum", "gradle.lockfile", "package-lock.json",
@@ -83,13 +85,13 @@ class RepositoryTools:
     def _build_tools(self) -> list[Tool]:
         obj = {"type": "object", "additionalProperties": False}
         return [
-            Tool("list_files", "List repository files recursively.", obj | {"properties": {
+            Tool("list_files", "List repository files. Start shallow and narrow the path as needed.", obj | {"properties": {
                 "path": {"type": "string", "default": "."},
-                "max_depth": {"type": "integer", "default": 4}}, "required": []}, self._list_files),
-            Tool("read_file", "Read a UTF-8 text file with line numbers.", obj | {"properties": {
+                "max_depth": {"type": "integer", "default": 2}}, "required": []}, self._list_files),
+            Tool("read_file", "Read a line-numbered file window. Omit end_line for the next 160 lines.", obj | {"properties": {
                 "path": {"type": "string"}, "start_line": {"type": "integer", "default": 1},
                 "end_line": {"type": "integer"}}, "required": ["path"]}, self._read_file),
-            Tool("search_code", "Search repository text using a literal query.", obj | {"properties": {
+            Tool("search_code", "Search repository text using a literal query; results include file counts and are capped.", obj | {"properties": {
                 "query": {"type": "string"}, "path": {"type": "string", "default": "."},
                 "glob": {"type": "string"}}, "required": ["query"]}, self._search_code),
             Tool("edit_file", "Replace exact text, or create a file when old_text is empty.", obj | {"properties": {
@@ -112,7 +114,7 @@ class RepositoryTools:
 
     def _list_files(self, args: JsonObject) -> Observation:
         base = self._path(str(args.get("path", ".")))
-        max_depth = int(args.get("max_depth", 4))
+        max_depth = int(args.get("max_depth", 2))
         if max_depth < 0 or max_depth > 20:
             raise ValueError("max_depth must be between 0 and 20")
         ignored = {".git", "node_modules", ".venv", "venv", "__pycache__", "dist", "build"}
@@ -123,17 +125,24 @@ class RepositoryTools:
             if len(relative.parts) >= max_depth:
                 dirs[:] = []
             files.extend(str((Path(current) / name).relative_to(self.root)) for name in sorted(names))
-        output, truncated = _bounded("\n".join(files))
-        return Observation(True, output, {"count": len(files)}, truncated)
+        visible = files[:MAX_LISTED_FILES]
+        truncated = len(files) > len(visible)
+        output = "\n".join(visible) or "(no files found)"
+        if truncated:
+            output += f"\n... {len(files) - len(visible)} more files omitted; narrow path or max_depth ..."
+        return Observation(True, output, {"count": len(files), "shown": len(visible)}, truncated)
 
     def _read_file(self, args: JsonObject) -> Observation:
         path = self._path(str(args["path"]))
         start = max(1, int(args.get("start_line", 1)))
         lines = path.read_text().splitlines()
-        end = min(len(lines), int(args.get("end_line", start + 399)))
+        end = min(len(lines), int(args.get("end_line", start + 159)))
         rendered = "\n".join(f"{number:>6} | {lines[number - 1]}" for number in range(start, end + 1))
         output, truncated = _bounded(rendered)
-        return Observation(True, output, {"path": str(path.relative_to(self.root)), "lines": [start, end]}, truncated)
+        if end < len(lines):
+            output += f"\n... {len(lines) - end} lines remain; continue with start_line={end + 1} ..."
+            truncated = True
+        return Observation(True, output, {"path": str(path.relative_to(self.root)), "lines": [start, end], "total_lines": len(lines)}, truncated)
 
     def _search_code(self, args: JsonObject) -> Observation:
         query = str(args["query"])
@@ -143,8 +152,23 @@ class RepositoryTools:
             command[1:1] = ["--glob", str(glob)]
         completed = subprocess.run(command, cwd=self.root, text=True, capture_output=True, check=False)
         text = completed.stdout or completed.stderr
-        output, truncated = _bounded(text)
-        return Observation(completed.returncode in (0, 1), output, {"matches": completed.returncode == 0}, truncated)
+        matches = text.splitlines()
+        visible = matches[:MAX_SEARCH_MATCHES]
+        truncated = len(matches) > len(visible)
+        output = "\n".join(visible)
+        if completed.returncode == 1:
+            output = "(no matches found)"
+        elif truncated:
+            output += f"\n... {len(matches) - len(visible)} matches omitted; narrow path, query, or glob ..."
+        output, character_truncated = _bounded(output)
+        truncated = truncated or character_truncated
+        files = len({line.split(":", 1)[0] for line in matches if ":" in line})
+        return Observation(
+            completed.returncode in (0, 1),
+            output,
+            {"matches": len(matches), "files": files, "shown": len(visible)},
+            truncated,
+        )
 
     def _edit_file(self, args: JsonObject) -> Observation:
         path = self._path(str(args["path"]))

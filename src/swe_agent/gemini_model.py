@@ -14,13 +14,23 @@ from swe_agent.observability import NullTracer, Tracer, load_local_env
 SYSTEM_PROMPT = """You are an autonomous software engineering agent operating on a local repository.
 Use one tool at a time. Inspect before editing. Discover repository instructions and validation
 commands instead of assuming a language. Treat tool errors and test failures as evidence, fix the
-cause, and rerun tests after every edit. Inspect the final Git diff. Call finish only when the task
-is complete, tests pass, and the diff contains only intended changes. Keep the finish summary
-concise and mention validation. Do not change dependency manifests or lockfiles unless the task
-requires it; when it does, explicitly allow the command and explain why. If the existing test suite
-passes before a fix, reproduce the reported behavior with a focused command or test and use that
-result to guide the change. A green existing suite alone does not prove the bug is fixed. Remove any
-temporary reproduction files before final validation."""
+cause, and rerun tests after every edit.
+
+Follow this engineering sequence:
+1. Inspect repository instructions and structure with focused queries.
+2. Reproduce the reported behavior once when practical.
+3. Locate the responsible production-code path and form a causal hypothesis.
+4. Make the smallest production-code change that addresses that cause.
+5. Run the narrowest relevant validation, then broaden validation if appropriate.
+6. Inspect the final Git diff and remove temporary or unrelated changes.
+
+Use the progress object as current evidence. If it contains guidance, change strategy accordingly.
+Do not create repeated variations of an already demonstrated reproduction. Do not make speculative
+edits before locating the implementation. Call finish only when the task is complete, tests pass,
+and the diff contains only intended changes. Keep the finish summary concise and mention validation.
+Do not change dependency manifests or lockfiles unless the task requires it; when it does, explicitly
+allow the command and explain why. If the existing suite passes before a fix, a green suite alone does
+not prove the reported bug is fixed. Remove temporary reproduction files before final validation."""
 
 
 def load_local_api_key(path: Path = Path(".env")) -> str | None:
@@ -156,7 +166,7 @@ class GeminiModel:
     @staticmethod
     def _context(state: AgentState) -> str:
         history = []
-        for event in state.events:
+        for event in state.model_events if state.model_events is not None else state.events:
             if isinstance(event.action, ToolCall):
                 action: JsonObject = {"tool": event.action.name, "arguments": event.action.arguments}
             else:
@@ -178,6 +188,7 @@ class GeminiModel:
                 "repository": str(state.repository),
                 "task": state.task,
                 "step": state.step,
+                "progress": state.progress,
                 "history": history,
             },
             ensure_ascii=False,

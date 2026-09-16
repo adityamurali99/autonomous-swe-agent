@@ -58,6 +58,8 @@ class AgentState:
     max_steps: int = 40
     step: int = 0
     events: list[Event] = field(default_factory=list)
+    model_events: list[Event] | None = None
+    progress: JsonObject = field(default_factory=dict)
     validation_succeeded: bool = False
     diff_inspected: bool = False
     status: str = "running"

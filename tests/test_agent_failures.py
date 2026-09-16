@@ -110,7 +110,7 @@ def test_premature_finish_reaches_step_limit_and_trace_is_written(tmp_path: Path
 
     assert state.status == "step_limit"
     assert len(state.events) == 2
-    assert trace["schema_version"] == 3
+    assert trace["schema_version"] == 4
     assert trace["usage"]["requests"] == 2
     assert trace["runtime_seconds"] >= 0
     assert trace["events"][0]["observation"]["success"] is False

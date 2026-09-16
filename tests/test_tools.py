@@ -159,3 +159,28 @@ def test_repository_commands_use_injected_executor(tmp_path: Path):
     assert result.output == "controlled output\n"
     assert result.metadata["duration_seconds"] == 0.25
     assert executor.call == ("custom build", tmp_path.resolve(), 17)
+
+
+def test_read_file_defaults_to_focused_window_with_continuation_hint(tmp_path: Path):
+    init_repository(tmp_path)
+    (tmp_path / "large.py").write_text("".join(f"line {number}\n" for number in range(250)))
+
+    result = RepositoryTools(tmp_path).execute("read_file", {"path": "large.py"})
+
+    assert result.success
+    assert result.metadata["lines"] == [1, 160]
+    assert result.metadata["total_lines"] == 250
+    assert "continue with start_line=161" in result.output
+    assert result.truncated
+
+
+def test_search_results_are_capped_with_narrowing_hint(tmp_path: Path):
+    init_repository(tmp_path)
+    (tmp_path / "many.py").write_text("".join(f"target = {number}\n" for number in range(100)))
+
+    result = RepositoryTools(tmp_path).execute("search_code", {"query": "target"})
+
+    assert result.success
+    assert result.metadata == {"matches": 100, "files": 1, "shown": 80}
+    assert "20 matches omitted" in result.output
+    assert result.truncated
